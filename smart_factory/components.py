@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Set
 
 from ml_deeco.simulation import StationaryComponent2D, MovingComponent2D, Component
 
@@ -25,14 +25,20 @@ class Shift(Component):
     workPlace: WorkPlace
     startTime: int
     endTime: int
-    assigned: List['Worker']  # originally assigned for the shift
-    cancelled: List['Worker']
-    standbys: List['Worker']
-    working: List['Worker']   # actually working (subset of assigned and standbys)
+    assigned: Set['Worker']  # originally assigned for the shift
+    standbys: Set['Worker']
+    cancelled: Set['Worker']
+    calledStandbys: Set['Worker']
+    workers: Set['Worker']   # actually working (subset of assigned and standbys)
+
+    @property
+    def availableStandbys(self):
+        return self.standbys - self.calledStandbys
 
 
 class Worker(MovingComponent2D):
 
     hasHeadGear: bool
+    isAtFactory: bool
 
     pass
