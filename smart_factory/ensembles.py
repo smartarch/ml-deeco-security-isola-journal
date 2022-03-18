@@ -18,10 +18,6 @@ class ShiftTeam(Ensemble):
         return worker in (self.shift.assigned - self.shift.cancelled) or \
             worker in self.shift.calledStandbys
 
-    @workers.cardinality
-    def workers(self):
-        return 0, 99999  # TODO
-
     def actuate(self):
         self.shift.workers = set(self.workers)
 
@@ -94,11 +90,6 @@ class AccessToWorkPlace(Ensemble):
     def workers(self, worker, otherEnsembles):
         return worker in self.shiftTeam.workers and worker.hasHeadGear
 
-    # TODO: can we implement unlimited cardinality? -> also useful for 'drone charging'
-    @workers.cardinality
-    def workers(self):
-        return len(self.shiftTeam.workers)
-
     def actuate(self):
         allow(self.workers, "enter", self.workPlace)
 
@@ -130,10 +121,6 @@ class LateWorkersReplacement(Ensemble):
     @lateWorkers.select
     def lateWorkers(self, worker, otherEnsembles):
         return worker in self.shift.assigned - self.shift.cancelled and worker.isAtFactory
-
-    @lateWorkers.cardinality
-    def lateWorkers(self):
-        return 0, 99999  # TODO
 
     standbys = someOf(Worker)
 
