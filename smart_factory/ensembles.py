@@ -117,11 +117,36 @@ class LateWorkersReplacement(Ensemble):
         endTime = self.shiftTeam.shift.endTime
         return startTime - 15 < now() < endTime
 
-    lateWorkers = someOf(Worker)
+    # region late workers
+
+    lateWorkers = someOf(Worker).withTimeEstimate(collectOnlyIfMaterialized=False)
 
     @lateWorkers.select
     def lateWorkers(self, worker, otherEnsembles):
-        return worker in self.shift.assigned - self.shift.cancelled and worker.isAtFactory
+        if self.potentiallyLate(worker):
+            estimatedArrival = now() + self.lateWorkers.estimate(worker)
+            return estimatedArrival > self.shift.endTime
+        return False
+
+    @lateWorkers.conditionValid
+    def belongsToShift(self, worker):
+        return worker in self.shift.assigned - self.shift.cancelled
+
+    @lateWorkers.inputsValid
+    def potentiallyLate(self, worker):
+        return not worker.isAtFactory and self.belongsToShift(worker)
+
+    @lateWorkers.input()
+    def alreadyPresentWorkers(self, worker):
+        return len(list(filter(lambda w: w.isAtFactory, self.shift.workers)))
+
+    @lateWorkers.estimate.condition
+    def arrived(self, worker):
+        return worker.isAtFactory
+
+    # endregion
+
+    # region select standbys for late workers
 
     standbys = someOf(Worker)
 
@@ -133,6 +158,8 @@ class LateWorkersReplacement(Ensemble):
     @standbys.cardinality
     def standbys(self):
         return 0, len(self.lateWorkers)
+
+    # endregion
 
     def actuate(self):
         if len(self.standbys) < len(self.lateWorkers):
