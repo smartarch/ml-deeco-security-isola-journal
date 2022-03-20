@@ -12,12 +12,15 @@ class Dispenser(StationaryComponent2D):
 
 
 class Factory(Component):
-    pass
+
+    entryDoor: Door
+    dispenser: Dispenser
 
 
 class WorkPlace(Component):
 
     factory: Factory
+    entryDoor: Door
 
 
 class Shift(Component):
@@ -40,5 +43,3 @@ class Worker(MovingComponent2D):
 
     hasHeadGear: bool
     isAtFactory: bool
-
-    pass

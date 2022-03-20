@@ -7,7 +7,7 @@ class ShiftTeam(Ensemble):
 
     shift: Shift
 
-    def __init__(self, shift):
+    def __init__(self, shift: Shift):
         super().__init__()
         self.shift = shift
 
@@ -26,8 +26,9 @@ class AccessToFactory(Ensemble):
 
     # parent ensemble
     shiftTeam: ShiftTeam
+    # TODO: shiftTeam: ShiftTeam = ParentEnsemble()
 
-    def __init__(self, shiftTeam):
+    def __init__(self, shiftTeam: ShiftTeam):
         super().__init__()
         self.shiftTeam = shiftTeam
         self.factory = shiftTeam.shift.workPlace.factory
@@ -49,7 +50,7 @@ class AccessToDispenser(Ensemble):
     # parent ensemble
     shiftTeam: ShiftTeam
 
-    def __init__(self, shiftTeam):
+    def __init__(self, shiftTeam: ShiftTeam):
         super().__init__()
         self.shiftTeam = shiftTeam
         self.dispenser = shiftTeam.shift.workPlace.factory.dispenser
