@@ -1,5 +1,8 @@
+from typing import List
+
 from components import Shift, Worker
 from helpers import allow, now
+
 from ml_deeco.simulation import Ensemble, someOf
 
 
@@ -10,6 +13,9 @@ class ShiftTeam(Ensemble):
     def __init__(self, shift: Shift):
         super().__init__()
         self.shift = shift
+
+    def priority(self):
+        return 5
 
     workers = someOf(Worker)
 
@@ -24,108 +30,100 @@ class ShiftTeam(Ensemble):
 
 class AccessToFactory(Ensemble):
 
-    # parent ensemble
-    shiftTeam: ShiftTeam
-    # TODO: shiftTeam: ShiftTeam = ParentEnsemble()
+    shift: Shift
 
-    def __init__(self, shiftTeam: ShiftTeam):
+    def __init__(self, shift: Shift):
         super().__init__()
-        self.shiftTeam = shiftTeam
-        self.factory = shiftTeam.shift.workPlace.factory
+        self.shift = shift
+        self.factory = shift.workPlace.factory
 
     def priority(self):
-        return self.shiftTeam.priority() - 1
+        return 4
 
     def situation(self):
-        startTime = self.shiftTeam.shift.startTime
-        endTime = self.shiftTeam.shift.endTime
+        startTime = self.shift.startTime
+        endTime = self.shift.endTime
         return startTime - 30 < now() < endTime + 30
 
     def actuate(self):
-        allow(self.shiftTeam.workers, "enter", self.factory)
+        allow(self.shift.workers, "enter", self.factory)
 
 
 class AccessToDispenser(Ensemble):
 
-    # parent ensemble
-    shiftTeam: ShiftTeam
+    shift: Shift
 
-    def __init__(self, shiftTeam: ShiftTeam):
+    def __init__(self, shift: Shift):
         super().__init__()
-        self.shiftTeam = shiftTeam
-        self.dispenser = shiftTeam.shift.workPlace.factory.dispenser
+        self.shift = shift
+        self.dispenser = shift.workPlace.factory.dispenser
 
     def priority(self):
-        return self.shiftTeam.priority() - 1
+        return 4
 
     def situation(self):
-        startTime = self.shiftTeam.shift.startTime
-        endTime = self.shiftTeam.shift.endTime
+        startTime = self.shift.startTime
+        endTime = self.shift.endTime
         return startTime - 15 < now() < endTime
 
     def actuate(self):
-        allow(self.shiftTeam.workers, "use", self.dispenser)
+        allow(self.shift.workers, "use", self.dispenser)
 
 
 class AccessToWorkPlace(Ensemble):
 
-    # parent ensemble
-    shiftTeam: ShiftTeam
+    shift: Shift
 
-    def __init__(self, shiftTeam):
+    def __init__(self, shift: Shift):
         super().__init__()
-        self.shiftTeam = shiftTeam
-        self.workPlace = shiftTeam.shift.workPlace
+        self.shift = shift
+        self.workPlace = shift.workPlace
 
     def priority(self):
-        return self.shiftTeam.priority() - 1
+        return 3
 
     def situation(self):
-        startTime = self.shiftTeam.shift.startTime
-        endTime = self.shiftTeam.shift.endTime
+        startTime = self.shift.startTime
+        endTime = self.shift.endTime
         return startTime - 30 < now() < endTime + 30
 
-    workers = someOf(Worker)  # subset of self.shiftTeam.workers
+    workers = someOf(Worker)  # subset of self.shift.workers
 
     @workers.select
     def workers(self, worker, otherEnsembles):
-        return worker in self.shiftTeam.workers and worker.hasHeadGear
+        return worker in self.shift.workers and worker.hasHeadGear
 
     def actuate(self):
         allow(self.workers, "enter", self.workPlace)
 
 
-class NotificationAboutWorkersThatArePotentiallyLate(Ensemble):
-    pass
+class CancelLateWorkers(Ensemble):
 
+    shift: Shift
 
-class LateWorkersReplacement(Ensemble):
-
-    # parent ensemble
-    shiftTeam: ShiftTeam
-
-    def __init__(self, shiftTeam):
+    def __init__(self, shift: Shift):
         super().__init__()
-        self.shiftTeam = shiftTeam
-        self.shift = shiftTeam.shift
+        self.shift = shift
 
     def priority(self):
-        return self.shiftTeam.priority() + 1
+        return 2
 
     def situation(self):
-        startTime = self.shiftTeam.shift.startTime
-        endTime = self.shiftTeam.shift.endTime
+        startTime = self.shift.startTime
+        endTime = self.shift.endTime
         return startTime - 15 < now() < endTime
 
     # region late workers
 
     lateWorkers = someOf(Worker).withTimeEstimate(collectOnlyIfMaterialized=False)
+    # TODO: if the worker will come in time
+    # TODO: inTimeSteps( from, to )
 
     @lateWorkers.select
     def lateWorkers(self, worker, otherEnsembles):
         if self.potentiallyLate(worker):
             estimatedArrival = now() + self.lateWorkers.estimate(worker)
-            return estimatedArrival > self.shift.endTime
+            return estimatedArrival > self.shift.startTime
         return False
 
     @lateWorkers.conditionValid
@@ -140,15 +138,39 @@ class LateWorkersReplacement(Ensemble):
     def alreadyPresentWorkers(self, worker):
         return len(list(filter(lambda w: w.isAtFactory, self.shift.workers)))
 
+    # TODO: which shift
+    # TODO: day of week
+
     @lateWorkers.estimate.condition
     def arrived(self, worker):
         return worker.isAtFactory
 
     # endregion
 
-    # region select standbys for late workers
+    def actuate(self):
+        self.shift.cancelled.update(self.lateWorkers)
+        # TODO: notify
 
-    standbys = someOf(Worker)
+
+# TODO: do the replacement as matching for all the shifts simultaneously
+class ReplaceLateWithStandbys(Ensemble):
+
+    lateWorkersEnsemble: CancelLateWorkers  # TODO: list
+    shift: Shift
+
+    def __init__(self, lateWorkersEnsemble: CancelLateWorkers):
+        super().__init__()
+        self.lateWorkersEnsemble = lateWorkersEnsemble
+        self.shift = lateWorkersEnsemble.shift
+
+    def priority(self):
+        return 1
+
+    def situation(self):
+        return self.lateWorkersEnsemble.materialized
+        # return any(map(lambda e: e.materialized, self.lateWorkersEnsembles))  # TODO: replace with named abstraction
+
+    standbys = someOf(Worker)  # TODO: matching
 
     @standbys.select
     def standbys(self, worker, otherEnsembles):
@@ -157,14 +179,25 @@ class LateWorkersReplacement(Ensemble):
 
     @standbys.cardinality
     def standbys(self):
-        return 0, len(self.lateWorkers)
-
-    # endregion
+        return 0, len(self.lateWorkersEnsemble.lateWorkers)
 
     def actuate(self):
-        if len(self.standbys) < len(self.lateWorkers):
-            raise RuntimeError("Not enough standbys")  # TODO: replace error with a notification?
-
-        self.shift.cancelled.append(self.lateWorkers)
-        self.shift.calledStandbys.append(self.standbys)
+        print(self.standbys)
+        # TODO: self.shift.calledStandbys.append(self.standbys)
         # TODO: notify
+
+
+def getEnsembles(shifts: List[Shift]):
+    ensembles: List[Ensemble] = []
+
+    ensembles.extend((ShiftTeam(shift) for shift in shifts))
+    ensembles.extend((AccessToFactory(shift) for shift in shifts))
+    ensembles.extend((AccessToDispenser(shift) for shift in shifts))
+    ensembles.extend((AccessToWorkPlace(shift) for shift in shifts))
+
+    for shift in shifts:
+        lateWorkersEnsemble = CancelLateWorkers(shift)
+        ensembles.append(lateWorkersEnsemble)
+        ensembles.append(ReplaceLateWithStandbys(lateWorkersEnsemble))
+
+    return ensembles
