@@ -1,18 +1,22 @@
 import argparse
 import os
 import random
+from typing import List
 import numpy as np
 
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # Report only TF errors by default
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU in TF. The models are small, so it is actually faster to use the CPU.
 import tensorflow as tf
 
+from ml_deeco.simulation import Component, run_experiment
 from ml_deeco.utils import setVerboseLevel
+
+from configuration import CONFIGURATION
 
 
 def run(args):
     initialize(args)
-    pass
+    run_experiment(1, 1, CONFIGURATION.steps, prepareSimulation)
 
 
 def initialize(args):
@@ -26,6 +30,26 @@ def initialize(args):
     # Set number of threads
     tf.config.threading.set_inter_op_parallelism_threads(args.threads)
     tf.config.threading.set_intra_op_parallelism_threads(args.threads)
+
+
+def prepareSimulation(_i, _s):
+    from components import Factory, WorkPlace, Shift, Worker
+    from ensembles import getEnsembles
+
+    components: List[Component] = []
+    shifts = []
+
+    factory = Factory()
+    components.append(factory)
+
+    for i in range(3):
+        workPlace = WorkPlace(factory)
+        # TODO: workers
+        shift = Shift(workPlace)
+        components += [workPlace, shift]
+        shifts.append(shift)
+
+    return components, getEnsembles(shifts)
 
 
 def main():

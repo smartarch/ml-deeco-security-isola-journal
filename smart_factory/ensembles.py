@@ -1,9 +1,11 @@
 from typing import List
 
+from ml_deeco.estimators import ConstantEstimator
+from ml_deeco.simulation import Ensemble, someOf
+from ml_deeco.utils import verbosePrint
+
 from components import Shift, Worker
 from helpers import allow, now
-
-from ml_deeco.simulation import Ensemble, someOf
 
 
 class ShiftTeam(Ensemble):
@@ -115,7 +117,7 @@ class CancelLateWorkers(Ensemble):
 
     # region late workers
 
-    lateWorkers = someOf(Worker).withTimeEstimate(collectOnlyIfMaterialized=False)
+    lateWorkers = someOf(Worker).withTimeEstimate(collectOnlyIfMaterialized=False).using(ConstantEstimator(10))
     # TODO: if the worker will come in time
     # TODO: inTimeSteps( from, to )
 
@@ -126,15 +128,15 @@ class CancelLateWorkers(Ensemble):
             return estimatedArrival > self.shift.startTime
         return False
 
-    @lateWorkers.conditionValid
+    @lateWorkers.estimate.conditionsValid
     def belongsToShift(self, worker):
         return worker in self.shift.assigned - self.shift.cancelled
 
-    @lateWorkers.inputsValid
+    @lateWorkers.estimate.inputsValid
     def potentiallyLate(self, worker):
         return not worker.isAtFactory and self.belongsToShift(worker)
 
-    @lateWorkers.input()
+    @lateWorkers.estimate.input()
     def alreadyPresentWorkers(self, worker):
         return len(list(filter(lambda w: w.isAtFactory, self.shift.workers)))
 
@@ -182,8 +184,8 @@ class ReplaceLateWithStandbys(Ensemble):
         return 0, len(self.lateWorkersEnsemble.lateWorkers)
 
     def actuate(self):
-        print(self.standbys)
-        # TODO: self.shift.calledStandbys.append(self.standbys)
+        verbosePrint(self.standbys, 4)
+        self.shift.calledStandbys.update(self.standbys)
         # TODO: notify
 
 

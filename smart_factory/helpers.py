@@ -1,8 +1,11 @@
 from ml_deeco.simulation import SIMULATION_GLOBALS
+from ml_deeco.utils import verbosePrint
 
 
 def allow(subjects, action, object):
-    print(f"Allowing {subjects} {action} {object}")
+    subjects = list(subjects)
+    if len(subjects) > 0:
+        verbosePrint(f"Allowing {subjects} {action} {object}", 4)
 
 
 def now():
