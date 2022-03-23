@@ -35,13 +35,13 @@ class WorkPlace(Component):
 
 class Shift(Component):
 
-    def __init__(self, workPlace: WorkPlace):
+    def __init__(self, workPlace: WorkPlace, assigned, standbys):
         super().__init__()
         self.workPlace = workPlace
         self.startTime = CONFIGURATION.shiftStart
         self.endTime = CONFIGURATION.shiftEnd
-        self.assigned: Set['Worker'] = set()  # originally assigned for the shift
-        self.standbys: Set['Worker'] = set()
+        self.assigned: Set['Worker'] = set(assigned)  # originally assigned for the shift
+        self.standbys: Set['Worker'] = set(standbys)
         self.cancelled: Set['Worker'] = set()
         self.calledStandbys: Set['Worker'] = set()
         self.workers: Set['Worker'] = set()  # actually working (subset of assigned and standbys)
@@ -53,5 +53,7 @@ class Shift(Component):
 
 class Worker(MovingComponent2D):
 
-    hasHeadGear: bool
-    isAtFactory: bool
+    def __init__(self, location):
+        super().__init__(location)
+        self.hasHeadGear = False
+        self.isAtFactory = False

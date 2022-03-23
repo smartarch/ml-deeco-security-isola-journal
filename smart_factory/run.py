@@ -12,6 +12,8 @@ from ml_deeco.simulation import Component, run_experiment
 from ml_deeco.utils import setVerboseLevel
 
 from configuration import CONFIGURATION
+from components import Factory, WorkPlace, Shift, Worker
+from ensembles import getEnsembles
 
 
 def run(args):
@@ -33,8 +35,6 @@ def initialize(args):
 
 
 def prepareSimulation(_i, _s):
-    from components import Factory, WorkPlace, Shift, Worker
-    from ensembles import getEnsembles
 
     components: List[Component] = []
     shifts = []
@@ -44,9 +44,10 @@ def prepareSimulation(_i, _s):
 
     for i in range(3):
         workPlace = WorkPlace(factory)
-        # TODO: workers
-        shift = Shift(workPlace)
-        components += [workPlace, shift]
+        workers = [Worker(None) for _ in range(CONFIGURATION.workersPerShift)]  # TODO: position
+        standbys = [Worker(None) for _ in range(CONFIGURATION.standbysPerShift)]  # TODO: position
+        shift = Shift(workPlace, workers, standbys)
+        components += [workPlace, shift, *workers, *standbys]
         shifts.append(shift)
 
     return components, getEnsembles(shifts)
