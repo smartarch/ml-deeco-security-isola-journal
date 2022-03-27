@@ -11,7 +11,7 @@ import tensorflow as tf
 from ml_deeco.simulation import Component, run_experiment
 from ml_deeco.utils import setVerboseLevel
 
-from configuration import CONFIGURATION
+from configuration import CONFIGURATION, createFactory, setArrivalTime
 from components import Factory, WorkPlace, Shift, Worker
 from ensembles import getEnsembles
 
@@ -39,15 +39,16 @@ def prepareSimulation(_i, _s):
     components: List[Component] = []
     shifts = []
 
-    factory = Factory()
+    factory, workplaces, busStop = createFactory()
     components.append(factory)
 
-    for i in range(3):
-        workPlace = WorkPlace(factory)
-        workers = [Worker(None) for _ in range(CONFIGURATION.workersPerShift)]  # TODO: position
-        standbys = [Worker(None) for _ in range(CONFIGURATION.standbysPerShift)]  # TODO: position
-        shift = Shift(workPlace, workers, standbys)
-        components += [workPlace, shift, *workers, *standbys]
+    for workplace in workplaces:
+        workers = [Worker(workplace, busStop) for _ in range(CONFIGURATION.workersPerShift)]
+        for worker in workers:
+            setArrivalTime(worker)
+        standbys = [Worker(workplace, busStop) for _ in range(CONFIGURATION.standbysPerShift)]
+        shift = Shift(workplace, workers, standbys)
+        components += [workplace, shift, *workers, *standbys]
         shifts.append(shift)
 
     return components, getEnsembles(shifts)

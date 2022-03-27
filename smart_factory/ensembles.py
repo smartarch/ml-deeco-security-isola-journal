@@ -48,7 +48,7 @@ class AccessToFactory(Ensemble):
         return startTime - 30 < now() < endTime + 30
 
     def actuate(self):
-        allow(self.shift.workers, "enter", self.factory)
+        allow(self.shift.workers, "enter", self.factory.entryDoor)
 
 
 class AccessToDispenser(Ensemble):
@@ -96,7 +96,7 @@ class AccessToWorkPlace(Ensemble):
         return worker in self.shift.workers and worker.hasHeadGear
 
     def actuate(self):
-        allow(self.workers, "enter", self.workPlace)
+        allow(self.workers, "enter", self.workPlace.entryDoor)
 
 
 class CancelLateWorkers(Ensemble):
@@ -184,7 +184,7 @@ class ReplaceLateWithStandbys(Ensemble):
         return 0, len(self.lateWorkersEnsemble.lateWorkers)
 
     def actuate(self):
-        verbosePrint(self.standbys, 4)
+        verbosePrint(str(self.standbys), 4)
         self.shift.calledStandbys.update(self.standbys)
         # TODO: notify
 

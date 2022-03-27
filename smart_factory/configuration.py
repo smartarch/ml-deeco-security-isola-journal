@@ -1,3 +1,9 @@
+from typing import Tuple, List
+
+from ml_deeco.simulation import Point2D
+
+from components import WorkPlace, Factory, Door, Dispenser, Worker
+
 
 class Configuration:
 
@@ -13,3 +19,29 @@ class Configuration:
 
 
 CONFIGURATION = Configuration()
+
+
+def createFactory() -> Tuple[Factory, List[WorkPlace], Point2D]:
+    factory = Factory()
+    factory.entryDoor = Door(20, 90)
+    factory.dispenser = Dispenser(30, 90)
+
+    workplace1 = WorkPlace(factory)
+    workplace1.entryDoor = Door(40, 50)
+    workplace1.pathTo = [Point2D(30, 50)]
+
+    workplace2 = WorkPlace(factory)
+    workplace2.entryDoor = Door(120, 50)
+    workplace2.pathTo = [Point2D(110, 90), Point2D(110, 50)]
+
+    workplace3 = WorkPlace(factory)
+    workplace3.entryDoor = Door(120, 110)
+    workplace3.pathTo = [Point2D(110, 90), Point2D(110, 110)]
+
+    busStop = Point2D(0, 90)
+
+    return factory, [workplace1, workplace2, workplace3], busStop
+
+
+def setArrivalTime(worker: Worker):
+    worker.busArrivalTime = 10
