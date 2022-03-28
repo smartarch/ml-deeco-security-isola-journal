@@ -1,6 +1,8 @@
+import random
 from typing import Tuple, List
 
-from ml_deeco.simulation import Point2D
+from helpers import DayOfWeek
+from ml_deeco.simulation import Point2D, SIMULATION_GLOBALS
 
 from components import WorkPlace, Factory, Door, Dispenser, Worker
 
@@ -43,5 +45,20 @@ def createFactory() -> Tuple[Factory, List[WorkPlace], Point2D]:
     return factory, [workplace1, workplace2, workplace3], busStop
 
 
-def setArrivalTime(worker: Worker):
-    worker.busArrivalTime = 10
+weekDayMean, weekDayStd = 25, 15
+weekEndMean, weekEndStd = 15, 10
+standbyMean, standbyStd = 60, 10
+
+
+def setArrivalTime(worker: Worker, dayOfWeek):
+    dayOfWeek = DayOfWeek(dayOfWeek % 7)
+
+    if dayOfWeek in (DayOfWeek.SATURDAY, DayOfWeek.SUNDAY):
+        worker.busArrivalTime = int(random.gauss(weekEndMean, weekEndStd))
+    else:
+        worker.busArrivalTime = int(random.gauss(weekDayMean, weekDayStd))
+
+
+# we will not simulate the standby, just assume they will start working about an hour after they are called
+def setStandbyArrivedAtWorkplaceTime(standby: Worker):
+    standby.arrivedAtWorkplaceTime = SIMULATION_GLOBALS.currentTimeStep + int(random.gauss(standbyMean, standbyStd))

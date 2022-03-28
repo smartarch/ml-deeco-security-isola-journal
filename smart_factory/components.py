@@ -17,7 +17,7 @@ class SecurityComponent(Component):
 
     def allows(self, subject, action):
         actionAllowed = subject in self.allowed[action]
-        verbosePrint(f"{self}, {SIMULATION_GLOBALS.currentTimeStep + 1}: {'allowing' if actionAllowed else 'denying'} '{subject}' action '{action}'", 3)
+        verbosePrint(f"{self}, {SIMULATION_GLOBALS.currentTimeStep + 1}: {'allowing' if actionAllowed else 'denying'} '{subject}' action '{action}'", 5)
         return actionAllowed
 
 
@@ -78,6 +78,8 @@ class WorkerState(enum.IntEnum):
     WALKING_TO_WORKPLACE = 5
     AT_WORKPLACE_DOOR = 6
     AT_WORKPLACE = 7
+    CANCELLED = 8
+    CALLED_STANDBY = 9
 
 
 class Worker(MovingComponent2D):
@@ -97,6 +99,9 @@ class Worker(MovingComponent2D):
         if self.state == WorkerState.NOT_ACTIVE_YET:
             if self.busArrivalTime and SIMULATION_GLOBALS.currentTimeStep >= self.busArrivalTime:
                 self.state = WorkerState.WALKING_TO_FACTORY
+            return
+
+        if self.state == WorkerState.CANCELLED or self.state == WorkerState.CALLED_STANDBY:
             return
 
         if self.state == WorkerState.WALKING_TO_FACTORY:
@@ -131,4 +136,4 @@ class Worker(MovingComponent2D):
             if self.workplace.entryDoor.allows(self, 'enter'):
                 self.state = WorkerState.AT_WORKPLACE
                 self.arrivedAtWorkplaceTime = SIMULATION_GLOBALS.currentTimeStep
-                verbosePrint(f"{self}: arrived at workplace", 3)
+                verbosePrint(f"{self}: arrived at workplace", 4)

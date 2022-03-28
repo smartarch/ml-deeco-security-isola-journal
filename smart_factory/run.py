@@ -9,16 +9,20 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU in TF. The models are s
 import tensorflow as tf
 
 from ml_deeco.simulation import Component, run_experiment
-from ml_deeco.utils import setVerboseLevel
+from ml_deeco.utils import setVerboseLevel, verbosePrint
 
 from configuration import CONFIGURATION, createFactory, setArrivalTime
 from components import Factory, WorkPlace, Shift, Worker
 from ensembles import getEnsembles
 
 
+avgTimes = []
+
+
 def run(args):
     initialize(args)
-    run_experiment(1, 1, CONFIGURATION.steps, prepareSimulation)
+    run_experiment(1, 7, CONFIGURATION.steps, prepareSimulation,
+                   simulationCallback=simulationCallback, iterationCallback=iterationCallback)
 
 
 def initialize(args):
@@ -34,7 +38,7 @@ def initialize(args):
     tf.config.threading.set_intra_op_parallelism_threads(args.threads)
 
 
-def prepareSimulation(_i, _s):
+def prepareSimulation(_i, simulation):
 
     components: List[Component] = []
     shifts = []
@@ -45,13 +49,30 @@ def prepareSimulation(_i, _s):
     for workplace in workplaces:
         workers = [Worker(workplace, busStop) for _ in range(CONFIGURATION.workersPerShift)]
         for worker in workers:
-            setArrivalTime(worker)
+            setArrivalTime(worker, simulation)
         standbys = [Worker(workplace, busStop) for _ in range(CONFIGURATION.standbysPerShift)]
         shift = Shift(workplace, workers, standbys)
         components += [workplace, shift, *workers, *standbys]
         shifts.append(shift)
 
     return components, getEnsembles(shifts)
+
+
+def simulationCallback(components, _ens, _i, _s):
+    shifts = filter(lambda c: isinstance(c, Shift), components)
+    for shift in shifts:
+        arrivedWorkers = list(filter(lambda w: w.arrivedAtWorkplaceTime is not None, shift.workers))
+        avgArriveTime = sum(map(lambda w: w.arrivedAtWorkplaceTime, arrivedWorkers)) / len(arrivedWorkers)
+        avgTimes.append(avgArriveTime)
+        standbysCount = len(shift.calledStandbys)
+        verbosePrint(f"{shift}: arrived {len(arrivedWorkers)} workers ({standbysCount} standbys), avg. time = {avgArriveTime:.2f}", 2)
+
+
+def iterationCallback(_i):
+    global avgTimes
+    avgTimesAverage = sum(avgTimes) / len(avgTimes)
+    verbosePrint(f"Average arrival time in the iteration: {avgTimesAverage:.2f}", 1)
+    avgTimes = []
 
 
 def main():

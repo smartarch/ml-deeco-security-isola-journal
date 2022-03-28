@@ -1,10 +1,11 @@
 from typing import List
 
+from configuration import setStandbyArrivedAtWorkplaceTime
 from ml_deeco.estimators import ConstantEstimator
 from ml_deeco.simulation import Ensemble, someOf
 from ml_deeco.utils import verbosePrint
 
-from components import Shift, Worker
+from components import Shift, Worker, WorkerState
 from helpers import allow, now
 
 
@@ -45,7 +46,7 @@ class AccessToFactory(Ensemble):
     def situation(self):
         startTime = self.shift.startTime
         endTime = self.shift.endTime
-        return startTime - 30 < now() < endTime + 30
+        return startTime - 30 <= now() <= endTime + 30
 
     def actuate(self):
         allow(self.shift.workers, "enter", self.factory.entryDoor)
@@ -66,7 +67,7 @@ class AccessToDispenser(Ensemble):
     def situation(self):
         startTime = self.shift.startTime
         endTime = self.shift.endTime
-        return startTime - 15 < now() < endTime
+        return startTime - 15 <= now() <= endTime
 
     def actuate(self):
         allow(self.shift.workers, "use", self.dispenser)
@@ -87,7 +88,7 @@ class AccessToWorkPlace(Ensemble):
     def situation(self):
         startTime = self.shift.startTime
         endTime = self.shift.endTime
-        return startTime - 30 < now() < endTime + 30
+        return startTime - 30 <= now() <= endTime + 30
 
     workers = someOf(Worker)  # subset of self.shift.workers
 
@@ -111,9 +112,10 @@ class CancelLateWorkers(Ensemble):
         return 2
 
     def situation(self):
+        return False
         startTime = self.shift.startTime
         endTime = self.shift.endTime
-        return startTime - 15 < now() < endTime
+        return startTime - 15 <= now() <= endTime
 
     # region late workers
 
@@ -151,7 +153,8 @@ class CancelLateWorkers(Ensemble):
 
     def actuate(self):
         self.shift.cancelled.update(self.lateWorkers)
-        # TODO: notify
+        for worker in self.lateWorkers:
+            worker.state = WorkerState.CANCELLED  # this is instead of the notification
 
 
 # TODO: do the replacement as matching for all the shifts simultaneously
@@ -184,9 +187,11 @@ class ReplaceLateWithStandbys(Ensemble):
         return 0, len(self.lateWorkersEnsemble.lateWorkers)
 
     def actuate(self):
-        verbosePrint(str(self.standbys), 4)
+        verbosePrint(str(self.standbys), 5)
         self.shift.calledStandbys.update(self.standbys)
-        # TODO: notify
+        for standby in self.standbys:
+            standby.state = WorkerState.CALLED_STANDBY  # this is instead of the notification of the standby
+            setStandbyArrivedAtWorkplaceTime(standby)
 
 
 def getEnsembles(shifts: List[Shift]):
