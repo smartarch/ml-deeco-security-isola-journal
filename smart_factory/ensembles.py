@@ -67,7 +67,7 @@ class AccessToDispenser(Ensemble):
     def situation(self):
         startTime = self.shift.startTime
         endTime = self.shift.endTime
-        return startTime - 15 <= now() <= endTime
+        return startTime - 20 <= now() <= endTime
 
     def actuate(self):
         allow(self.shift.workers, "use", self.dispenser)
@@ -118,9 +118,9 @@ class CancelLateWorkers(Ensemble):
 
     # region late workers
 
-    def willArriveBaseline(self, _worker, afterTime):
+    def isLateBaseline(self, _worker, timeToShift):
         """As a baseline, we assume that the worker will not arrive if they are not present 10 minutes before the shift starts."""
-        return self.shift.startTime - 10 <= now() + afterTime
+        return timeToShift < 10
 
     # lateWorkers = someOf(Worker).withTimeEstimate(collectOnlyIfMaterialized=False).using(ConstantEstimator(10))
 
@@ -128,7 +128,7 @@ class CancelLateWorkers(Ensemble):
         .withValueEstimate(collectOnlyIfMaterialized=False)\
         .inTimeStepsRange(1, 20)\
         .using(NeuralNetworkEstimator([32, 32], name="worker_arrives", outputFolder="results/worker_arrives"))\
-        .withBaseline(willArriveBaseline)
+        .withBaseline(isLateBaseline)
 
     @lateWorkers.select
     def lateWorkers(self, worker, otherEnsembles):
@@ -165,8 +165,8 @@ class CancelLateWorkers(Ensemble):
     #     return worker.isAtFactory
 
     @lateWorkers.estimate.target(BinaryFeature())
-    def workerArrived(self, worker):
-        return worker.isAtFactory
+    def isLate(self, worker):
+        return not worker.isAtFactory
 
     # endregion
 

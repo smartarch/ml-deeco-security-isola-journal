@@ -10,7 +10,7 @@ from components import WorkPlace, Factory, Door, Dispenser, Worker
 class Configuration:
 
     steps = 50
-    shiftStart = 30
+    shiftStart = 40
     shiftEnd = 50
     workersPerShift = 3
     standbysPerShift = 3
@@ -46,7 +46,7 @@ def createFactory() -> Tuple[Factory, List[WorkPlace], Point2D]:
     return factory, [workplace1, workplace2, workplace3], busStop
 
 
-weekDayMean, weekDayStd = 12, 5
+weekDayMean, weekDayStd = 15, 5
 weekEndMean, weekEndStd = 5, 5
 standbyMean, standbyStd = 60, 10
 

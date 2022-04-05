@@ -85,14 +85,19 @@ class WorkerState(enum.IntEnum):
 class Worker(MovingComponent2D):
 
     def __init__(self, workplace: WorkPlace, location):
-        super().__init__(location, speed=20)
+        super().__init__(location, speed=10)
+        # references
         self.workplace = workplace
         self.factory = workplace.factory
+        # state variables
         self.hasHeadGear = False
         self.isAtFactory = False
         self.state = WorkerState.NOT_ACTIVE_YET
         self.pathToWorkplaceIndex = 0
+        # configuration (set from the simulation)
         self.busArrivalTime: Optional[int] = None
+        # logging
+        self.arrivedAtFactoryTime: Optional[int] = None
         self.arrivedAtWorkplaceTime: Optional[int] = None
 
     def actuate(self):
@@ -112,6 +117,8 @@ class Worker(MovingComponent2D):
             if self.factory.entryDoor.allows(self, 'enter'):
                 self.state = WorkerState.WALKING_TO_DISPENSER
                 self.isAtFactory = True
+                self.arrivedAtFactoryTime = SIMULATION_GLOBALS.currentTimeStep
+                verbosePrint(f"{self}: arrived at factory", 4)
                 return
 
         if self.state == WorkerState.WALKING_TO_DISPENSER:

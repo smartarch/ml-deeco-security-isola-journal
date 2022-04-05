@@ -9,22 +9,22 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU in TF. The models are s
 import tensorflow as tf
 
 from ml_deeco.simulation import Component, run_experiment
-from ml_deeco.utils import setVerboseLevel, verbosePrint
+from ml_deeco.utils import setVerboseLevel, verbosePrint, Log
 
 from configuration import CONFIGURATION, createFactory, setArrivalTime
-from components import Factory, WorkPlace, Shift, Worker
+from components import Shift, Worker
 from ensembles import getEnsembles
 from helpers import DayOfWeek
 
 
-avgTimes = []
+arrivedAtWorkplaceTimeAvgTimes = []
+workerLogs = {}
 
 
 def run(args):
     initialize(args)
     run_experiment(2, 7, CONFIGURATION.steps, prepareSimulation,
-                   simulationCallback=simulationCallback, iterationCallback=iterationCallback)
-    # TODO: stepCallback -- log position, state, attributes of workers
+                   stepCallback=stepCallback, simulationCallback=simulationCallback, iterationCallback=iterationCallback)
 
 
 def initialize(args):
@@ -41,6 +41,8 @@ def initialize(args):
 
 
 def prepareSimulation(_i, simulation):
+    global workerLogs
+    workerLogs = {}
 
     CONFIGURATION.dayOfWeek = DayOfWeek(simulation)
 
@@ -59,24 +61,41 @@ def prepareSimulation(_i, simulation):
         components += [workplace, shift, *workers, *standbys]
         shifts.append(shift)
 
+        for worker in workers + standbys:
+            workerLogs[worker] = Log(["x", "y", "state", "atFactory", "headGear"])
+
     return components, getEnsembles(shifts)
 
 
-def simulationCallback(components, _ens, _i, _s):
+def stepCallback(components, _ens, _step):
+    for worker in filter(lambda c: isinstance(c, Worker), components):
+        workerLogs[worker].register([int(worker.location.x), int(worker.location.x), worker.state, worker.isAtFactory, worker.hasHeadGear])
+
+
+def simulationCallback(components, _ens, i, s):
     shifts = filter(lambda c: isinstance(c, Shift), components)
     for shift in shifts:
         arrivedWorkers = list(filter(lambda w: w.arrivedAtWorkplaceTime is not None, shift.workers))
         avgArriveTime = sum(map(lambda w: w.arrivedAtWorkplaceTime, arrivedWorkers)) / len(arrivedWorkers)
-        avgTimes.append(avgArriveTime)
+        arrivedAtWorkplaceTimeAvgTimes.append(avgArriveTime)
         standbysCount = len(shift.calledStandbys)
         verbosePrint(f"{shift}: arrived {len(arrivedWorkers)} workers ({standbysCount} standbys), avg. time = {avgArriveTime:.2f}", 2)
 
+    workersAtFactory = list(filter(lambda c: isinstance(c, Worker) and c.arrivedAtFactoryTime is not None, components))
+    if workersAtFactory:
+        avgFactoryArrivalTime = sum(map(lambda w: w.arrivedAtFactoryTime, workersAtFactory)) / len(workersAtFactory)
+        verbosePrint(f"Average arrival at factory = {avgFactoryArrivalTime:.2f}", 2)
+
+    os.makedirs(f"results/workers/{i+1}/{s+1}", exist_ok=True)
+    for worker in filter(lambda c: isinstance(c, Worker), components):
+        workerLogs[worker].export(f"results/workers/{i+1}/{s+1}/{worker}.csv")
+
 
 def iterationCallback(_i):
-    global avgTimes
-    avgTimesAverage = sum(avgTimes) / len(avgTimes)
+    global arrivedAtWorkplaceTimeAvgTimes
+    avgTimesAverage = sum(arrivedAtWorkplaceTimeAvgTimes) / len(arrivedAtWorkplaceTimeAvgTimes)
     verbosePrint(f"Average arrival time in the iteration: {avgTimesAverage:.2f}", 1)
-    avgTimes = []
+    arrivedAtWorkplaceTimeAvgTimes = []
 
 
 def main():
