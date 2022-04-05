@@ -1,7 +1,7 @@
 from typing import List
 
 from configuration import setStandbyArrivedAtWorkplaceTime, CONFIGURATION
-from ml_deeco.estimators import ConstantEstimator, NeuralNetworkEstimator, CategoricalFeature, BinaryFeature
+from ml_deeco.estimators import NeuralNetworkEstimator, CategoricalFeature, BinaryFeature
 from ml_deeco.simulation import Ensemble, someOf
 from ml_deeco.utils import verbosePrint
 
@@ -22,7 +22,7 @@ class ShiftTeam(Ensemble):
 
     workers = someOf(Worker)
 
-    @workers.select
+    @workers.selectAll  # do the select in one pass
     def workers(self, worker, otherEnsembles):
         return worker in (self.shift.assigned - self.shift.cancelled) or \
             worker in self.shift.calledStandbys
@@ -92,7 +92,7 @@ class AccessToWorkPlace(Ensemble):
 
     workers = someOf(Worker)  # subset of self.shift.workers
 
-    @workers.select
+    @workers.selectAll
     def workers(self, worker, otherEnsembles):
         return worker in self.shift.workers and worker.hasHeadGear
 
@@ -114,7 +114,7 @@ class CancelLateWorkers(Ensemble):
     def situation(self):
         startTime = self.shift.startTime
         endTime = self.shift.endTime
-        return startTime - 20 <= now() <= endTime
+        return startTime - 30 <= now() <= endTime
 
     # region late workers
 
@@ -126,11 +126,12 @@ class CancelLateWorkers(Ensemble):
 
     lateWorkers = someOf(Worker)\
         .withValueEstimate(collectOnlyIfMaterialized=False)\
-        .inTimeStepsRange(1, 20)\
-        .using(NeuralNetworkEstimator([32, 32], name="worker_arrives", outputFolder="results/worker_arrives"))\
+        .inTimeStepsRange(1, 20, trainingPercentage=0.1)\
+        .using(NeuralNetworkEstimator([32, 32], fit_params={"batch_size": 1024},
+                                      name="worker_arrives", outputFolder=CONFIGURATION.outputFolder / "worker_arrives"))\
         .withBaseline(isLateBaseline)
 
-    @lateWorkers.select
+    @lateWorkers.selectAll
     def lateWorkers(self, worker, otherEnsembles):
         if self.potentiallyLate(worker):
             # estimatedArrival = now() + self.lateWorkers.estimate(worker)

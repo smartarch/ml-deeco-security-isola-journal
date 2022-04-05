@@ -9,12 +9,14 @@ from components import WorkPlace, Factory, Door, Dispenser, Worker
 
 class Configuration:
 
-    steps = 50
+    steps = 80
     shiftStart = 40
-    shiftEnd = 50
-    workersPerShift = 3
-    standbysPerShift = 3
+    shiftEnd = 80
+    workersPerShift = 50
+    standbysPerShift = 30
     dayOfWeek = None
+
+    outputFolder = None
 
     def __init__(self):
         if 'CONFIGURATION' in locals():
@@ -46,8 +48,8 @@ def createFactory() -> Tuple[Factory, List[WorkPlace], Point2D]:
     return factory, [workplace1, workplace2, workplace3], busStop
 
 
-weekDayMean, weekDayStd = 15, 5
-weekEndMean, weekEndStd = 5, 5
+weekDayMean, weekDayStd = 20, 10
+weekEndMean, weekEndStd = 10, 10
 standbyMean, standbyStd = 60, 10
 
 
