@@ -14,6 +14,7 @@ from ml_deeco.utils import setVerboseLevel, verbosePrint
 from configuration import CONFIGURATION, createFactory, setArrivalTime
 from components import Factory, WorkPlace, Shift, Worker
 from ensembles import getEnsembles
+from helpers import DayOfWeek
 
 
 avgTimes = []
@@ -21,8 +22,9 @@ avgTimes = []
 
 def run(args):
     initialize(args)
-    run_experiment(1, 7, CONFIGURATION.steps, prepareSimulation,
+    run_experiment(2, 7, CONFIGURATION.steps, prepareSimulation,
                    simulationCallback=simulationCallback, iterationCallback=iterationCallback)
+    # TODO: stepCallback -- log position, state, attributes of workers
 
 
 def initialize(args):
@@ -39,6 +41,8 @@ def initialize(args):
 
 
 def prepareSimulation(_i, simulation):
+
+    CONFIGURATION.dayOfWeek = DayOfWeek(simulation)
 
     components: List[Component] = []
     shifts = []

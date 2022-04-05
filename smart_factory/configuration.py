@@ -14,6 +14,7 @@ class Configuration:
     shiftEnd = 50
     workersPerShift = 3
     standbysPerShift = 3
+    dayOfWeek = None
 
     def __init__(self):
         if 'CONFIGURATION' in locals():
@@ -45,8 +46,8 @@ def createFactory() -> Tuple[Factory, List[WorkPlace], Point2D]:
     return factory, [workplace1, workplace2, workplace3], busStop
 
 
-weekDayMean, weekDayStd = 25, 15
-weekEndMean, weekEndStd = 15, 10
+weekDayMean, weekDayStd = 12, 5
+weekEndMean, weekEndStd = 5, 5
 standbyMean, standbyStd = 60, 10
 
 

@@ -1,12 +1,12 @@
 from typing import List
 
-from configuration import setStandbyArrivedAtWorkplaceTime
-from ml_deeco.estimators import ConstantEstimator
+from configuration import setStandbyArrivedAtWorkplaceTime, CONFIGURATION
+from ml_deeco.estimators import ConstantEstimator, NeuralNetworkEstimator, CategoricalFeature, BinaryFeature
 from ml_deeco.simulation import Ensemble, someOf
 from ml_deeco.utils import verbosePrint
 
 from components import Shift, Worker, WorkerState
-from helpers import allow, now
+from helpers import allow, now, DayOfWeek
 
 
 class ShiftTeam(Ensemble):
@@ -112,25 +112,35 @@ class CancelLateWorkers(Ensemble):
         return 2
 
     def situation(self):
-        return False
         startTime = self.shift.startTime
         endTime = self.shift.endTime
-        return startTime - 15 <= now() <= endTime
+        return startTime - 20 <= now() <= endTime
 
     # region late workers
 
-    lateWorkers = someOf(Worker).withTimeEstimate(collectOnlyIfMaterialized=False).using(ConstantEstimator(10))
-    # TODO: if the worker will come in time
-    # TODO: inTimeSteps( from, to )
+    def willArriveBaseline(self, _worker, afterTime):
+        """As a baseline, we assume that the worker will not arrive if they are not present 10 minutes before the shift starts."""
+        return self.shift.startTime - 10 <= now() + afterTime
+
+    # lateWorkers = someOf(Worker).withTimeEstimate(collectOnlyIfMaterialized=False).using(ConstantEstimator(10))
+
+    lateWorkers = someOf(Worker)\
+        .withValueEstimate(collectOnlyIfMaterialized=False)\
+        .inTimeStepsRange(1, 20)\
+        .using(NeuralNetworkEstimator([32, 32], name="worker_arrives", outputFolder="results/worker_arrives"))\
+        .withBaseline(willArriveBaseline)
 
     @lateWorkers.select
     def lateWorkers(self, worker, otherEnsembles):
         if self.potentiallyLate(worker):
-            estimatedArrival = now() + self.lateWorkers.estimate(worker)
-            return estimatedArrival > self.shift.startTime
+            # estimatedArrival = now() + self.lateWorkers.estimate(worker)
+            # return estimatedArrival > self.shift.startTime
+            timeToShift = self.shift.startTime - now()
+            return self.lateWorkers.estimate(worker, timeToShift)
         return False
 
-    @lateWorkers.estimate.conditionsValid
+    # @lateWorkers.estimate.conditionsValid
+    @lateWorkers.estimate.targetsValid
     def belongsToShift(self, worker):
         return worker in self.shift.assigned - self.shift.cancelled
 
@@ -142,11 +152,20 @@ class CancelLateWorkers(Ensemble):
     def alreadyPresentWorkers(self, worker):
         return len(list(filter(lambda w: w.isAtFactory, self.shift.workers)))
 
-    # TODO: which shift
-    # TODO: day of week
+    @lateWorkers.estimate.input(CategoricalFeature(DayOfWeek))
+    def dayOfWeek(self, worker):
+        return CONFIGURATION.dayOfWeek
 
-    @lateWorkers.estimate.condition
-    def arrived(self, worker):
+    @lateWorkers.estimate.input()
+    def currentTime(self, worker):
+        return now()
+
+    # @lateWorkers.estimate.condition
+    # def arrived(self, worker):
+    #     return worker.isAtFactory
+
+    @lateWorkers.estimate.target(BinaryFeature())
+    def workerArrived(self, worker):
         return worker.isAtFactory
 
     # endregion
