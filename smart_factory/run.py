@@ -64,9 +64,9 @@ def run(args):
             components += [workplace, shift, *workers, *standbys]
             shifts.append(shift)
 
-            if args.log:
+            if args.log_workers:
                 for worker in workers + standbys:
-                    workerLogs[worker] = Log(["x", "y", "state", "atFactory", "headGear"])
+                    workerLogs[worker] = Log(["x", "y", "state", "isAtFactory", "hasHeadGear"])
 
         return components, getEnsembles(shifts)
 
@@ -75,11 +75,14 @@ def run(args):
             for worker in cancelled.lateWorkers:
                 cancelledWorkersLog.register([step, worker, worker.busArrivalTime, cancelled.shift])
 
-        if args.log:
+        if args.log_workers:
             for worker in filter(lambda c: isinstance(c, Worker), components):
                 workerLogs[worker].register([int(worker.location.x), int(worker.location.x), worker.state, worker.isAtFactory, worker.hasHeadGear])
 
     def simulationCallback(components, _ens, i, s):
+        workersLog = Log(["worker", "shift", "state", "isAtFactory", "hasHeadGear", "busArrivalTime", "arrivedAtFactoryTime",
+                          "arrivedAtWorkplaceTime"])
+
         shifts = filter(lambda c: isinstance(c, Shift), components)
         for shift in shifts:
             arrivedWorkers = list(filter(lambda w: w.arrivedAtWorkplaceTime is not None, shift.workers))
@@ -88,6 +91,9 @@ def run(args):
             standbysCount = len(shift.calledStandbys)
             verbosePrint(f"{shift}: arrived {len(arrivedWorkers)} workers ({standbysCount} standbys), avg. time = {avgArriveTime:.2f}", 2)
 
+            for worker in shift.assigned | shift.standbys:
+                workersLog.register([worker, shift, worker.state, worker.isAtFactory, worker.hasHeadGear, worker.busArrivalTime, worker.arrivedAtFactoryTime, worker.arrivedAtWorkplaceTime])
+
         workersAtFactory = list(filter(lambda c: isinstance(c, Worker) and c.arrivedAtFactoryTime is not None, components))
         if workersAtFactory:
             avgFactoryArrivalTime = sum(map(lambda w: w.arrivedAtFactoryTime, workersAtFactory)) / len(workersAtFactory)
@@ -95,10 +101,14 @@ def run(args):
 
         os.makedirs(CONFIGURATION.outputFolder / f"cancelled_workers/{i + 1}/", exist_ok=True)
         cancelledWorkersLog.export(CONFIGURATION.outputFolder / f"cancelled_workers/{i + 1}/{s + 1}.csv")
-        if args.log:
-            os.makedirs(CONFIGURATION.outputFolder / f"workers/{i+1}/{s+1}", exist_ok=True)
+
+        os.makedirs(CONFIGURATION.outputFolder / f"workers/{i + 1}/", exist_ok=True)
+        workersLog.export(CONFIGURATION.outputFolder / f"workers/{i + 1}/{s + 1}.csv")
+
+        if args.log_workers:
+            os.makedirs(CONFIGURATION.outputFolder / f"all_workers/{i+1}/{s+1}", exist_ok=True)
             for worker in filter(lambda c: isinstance(c, Worker), components):
-                workerLogs[worker].export(CONFIGURATION.outputFolder / f"workers/{i+1}/{s+1}/{worker}.csv")
+                workerLogs[worker].export(CONFIGURATION.outputFolder / f"all_workers/{i+1}/{s+1}/{worker}.csv")
 
     def iterationCallback(_i):
         global arrivedAtWorkplaceTimeAvgTimes
@@ -118,7 +128,7 @@ def main():
     parser.add_argument('-s', '--seed', type=int, help='Random seed.', required=False, default=42)
     parser.add_argument('--threads', type=int, help='Number of CPU threads TF can use.', required=False, default=4)
     parser.add_argument('-o', '--output_folder', type=str, help='Output folder for the logs.', required=True, default='results')
-    parser.add_argument('-l', '--log', action='store_true', help='Save logs of workers.', required=False, default=False)
+    parser.add_argument('-w', '--log_workers', action='store_true', help='Save logs of all workers.', required=False, default=False)
     args = parser.parse_args()
 
     run(args)

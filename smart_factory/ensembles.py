@@ -1,7 +1,7 @@
 from typing import List
 
 from configuration import setStandbyArrivedAtWorkplaceTime, CONFIGURATION
-from ml_deeco.estimators import NeuralNetworkEstimator, CategoricalFeature, BinaryFeature
+from ml_deeco.estimators import NeuralNetworkEstimator, CategoricalFeature, BinaryFeature, NumericFeature
 from ml_deeco.simulation import Ensemble, someOf
 from ml_deeco.utils import verbosePrint
 
@@ -20,9 +20,9 @@ class ShiftTeam(Ensemble):
     def priority(self):
         return 5
 
-    workers = someOf(Worker)
+    workers = someOf(Worker, selectedAllAtOnce=True)
 
-    @workers.selectAll  # do the select in one pass
+    @workers.select
     def workers(self, worker, otherEnsembles):
         return worker in (self.shift.assigned - self.shift.cancelled) or \
             worker in self.shift.calledStandbys
@@ -90,9 +90,9 @@ class AccessToWorkPlace(Ensemble):
         endTime = self.shift.endTime
         return startTime - 30 <= now() <= endTime + 30
 
-    workers = someOf(Worker)  # subset of self.shift.workers
+    workers = someOf(Worker, selectedAllAtOnce=True)  # subset of self.shift.workers
 
-    @workers.selectAll
+    @workers.select
     def workers(self, worker, otherEnsembles):
         return worker in self.shift.workers and worker.hasHeadGear
 
@@ -124,14 +124,14 @@ class CancelLateWorkers(Ensemble):
 
     # lateWorkers = someOf(Worker).withTimeEstimate(collectOnlyIfMaterialized=False).using(ConstantEstimator(10))
 
-    lateWorkers = someOf(Worker)\
+    lateWorkers = someOf(Worker, selectedAllAtOnce=True)\
         .withValueEstimate(collectOnlyIfMaterialized=False)\
         .inTimeStepsRange(1, 20, trainingPercentage=0.1)\
         .using(NeuralNetworkEstimator([32, 32], fit_params={"batch_size": 1024},
                                       name="worker_arrives", outputFolder=CONFIGURATION.outputFolder / "worker_arrives"))\
         .withBaseline(isLateBaseline)
 
-    @lateWorkers.selectAll
+    @lateWorkers.select
     def lateWorkers(self, worker, otherEnsembles):
         if self.potentiallyLate(worker):
             # estimatedArrival = now() + self.lateWorkers.estimate(worker)
@@ -149,7 +149,7 @@ class CancelLateWorkers(Ensemble):
     def potentiallyLate(self, worker):
         return not worker.isAtFactory and self.belongsToShift(worker)
 
-    @lateWorkers.estimate.input()
+    @lateWorkers.estimate.input(NumericFeature(0, CONFIGURATION.workersPerShift))
     def alreadyPresentWorkers(self, worker):
         return len(list(filter(lambda w: w.isAtFactory, self.shift.workers)))
 
@@ -157,7 +157,7 @@ class CancelLateWorkers(Ensemble):
     def dayOfWeek(self, worker):
         return CONFIGURATION.dayOfWeek
 
-    @lateWorkers.estimate.input()
+    @lateWorkers.estimate.input(NumericFeature(0, CONFIGURATION.steps))
     def currentTime(self, worker):
         return now()
 
