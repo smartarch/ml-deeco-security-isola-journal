@@ -120,7 +120,7 @@ class CancelLateWorkers(Ensemble):
 
     def isLateBaseline(self, _worker, timeToShift):
         """As a baseline, we assume that the worker will not arrive if they are not present 10 minutes before the shift starts."""
-        return timeToShift < 10
+        return timeToShift <= CONFIGURATION.cancellationBaseline
 
     # lateWorkers = someOf(Worker).withTimeEstimate(collectOnlyIfMaterialized=False).using(ConstantEstimator(10))
 

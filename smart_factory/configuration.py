@@ -17,6 +17,7 @@ class Configuration:
     dayOfWeek = None
 
     outputFolder = None
+    cancellationBaseline = 10
 
     def __init__(self):
         if 'CONFIGURATION' in locals():
@@ -48,18 +49,27 @@ def createFactory() -> Tuple[Factory, List[WorkPlace], Point2D]:
     return factory, [workplace1, workplace2, workplace3], busStop
 
 
-weekDayMean, weekDayStd = 20, 10
-weekEndMean, weekEndStd = 10, 10
-standbyMean, standbyStd = 60, 10
+weekDayMean, weekDayStd = 20, 5
+weekEndMean, weekEndStd = 20, 5
+latePercentage = 0.1
+lateWeekDayMean, lateWeekDayStd = 30, 5
+lateWeekEndMean, lateWeekEndStd = 50, 5
+standbyMean, standbyStd = 60, 5
 
 
 def setArrivalTime(worker: Worker, dayOfWeek):
     dayOfWeek = DayOfWeek(dayOfWeek % 7)
 
     if dayOfWeek in (DayOfWeek.SATURDAY, DayOfWeek.SUNDAY):
-        worker.busArrivalTime = int(random.gauss(weekEndMean, weekEndStd))
+        if random.random() < latePercentage:
+            worker.busArrivalTime = int(random.gauss(lateWeekEndMean, lateWeekEndStd))
+        else:
+            worker.busArrivalTime = int(random.gauss(weekEndMean, weekEndStd))
     else:
-        worker.busArrivalTime = int(random.gauss(weekDayMean, weekDayStd))
+        if random.random() < latePercentage:
+            worker.busArrivalTime = int(random.gauss(lateWeekDayMean, lateWeekDayStd))
+        else:
+            worker.busArrivalTime = int(random.gauss(weekDayMean, weekDayStd))
 
 
 # we will not simulate the standby, just assume they will start working about an hour after they are called

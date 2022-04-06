@@ -22,25 +22,35 @@ workerLogs = {}
 cancelledWorkersLog: Log
 
 
+def computeLateness(workers):
+    arrivalTimes = np.array([w.arrivedAtWorkplaceTime for w in workers])
+    return np.mean(np.max(arrivalTimes - CONFIGURATION.shiftStart, 0) ** 2)
+
+
 def run(args):
 
+    # Fix random seeds
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    tf.random.set_seed(args.seed)
+
+    # Set number of threads
+    tf.config.threading.set_inter_op_parallelism_threads(args.threads)
+    tf.config.threading.set_intra_op_parallelism_threads(args.threads)
+
+    # initialize configuration
+    CONFIGURATION.cancellationBaseline = args.baseline
+
+    # initialize output path
     CONFIGURATION.outputFolder = Path(args.output_folder)
     os.makedirs(CONFIGURATION.outputFolder, exist_ok=True)
     outputFile = open(CONFIGURATION.outputFolder / "output.txt", "w")
+
+    # initialize verbose printing
+    setVerboseLevel(args.verbose)
     setVerbosePrintFile(outputFile)
+
     from ensembles import getEnsembles, CancelLateWorkers
-
-    def initialize():
-        setVerboseLevel(args.verbose)
-
-        # Fix random seeds
-        random.seed(args.seed)
-        np.random.seed(args.seed)
-        tf.random.set_seed(args.seed)
-
-        # Set number of threads
-        tf.config.threading.set_inter_op_parallelism_threads(args.threads)
-        tf.config.threading.set_intra_op_parallelism_threads(args.threads)
 
     def prepareSimulation(_i, simulation):
         global workerLogs, cancelledWorkersLog
@@ -89,7 +99,7 @@ def run(args):
             avgArriveTime = sum(map(lambda w: w.arrivedAtWorkplaceTime, arrivedWorkers)) / len(arrivedWorkers)
             arrivedAtWorkplaceTimeAvgTimes.append(avgArriveTime)
             standbysCount = len(shift.calledStandbys)
-            verbosePrint(f"{shift}: arrived {len(arrivedWorkers)} workers ({standbysCount} standbys), avg. time = {avgArriveTime:.2f}", 2)
+            verbosePrint(f"{shift}: arrived {len(arrivedWorkers)} workers ({standbysCount} standbys), avg. time = {avgArriveTime:.2f}, lateness = {computeLateness(arrivedWorkers):.0f}", 2)
 
             for worker in shift.assigned | shift.standbys:
                 workersLog.register([worker, shift, worker.state, worker.isAtFactory, worker.hasHeadGear, worker.busArrivalTime, worker.arrivedAtFactoryTime, worker.arrivedAtWorkplaceTime])
@@ -116,19 +126,20 @@ def run(args):
         verbosePrint(f"Average arrival time in the iteration: {avgTimesAverage:.2f}", 1)
         arrivedAtWorkplaceTimeAvgTimes = []
 
-    initialize()
-    run_experiment(1, 7, CONFIGURATION.steps, prepareSimulation,
+    run_experiment(args.iterations, 7, CONFIGURATION.steps, prepareSimulation,
                    stepCallback=stepCallback, simulationCallback=simulationCallback, iterationCallback=iterationCallback)
     outputFile.close()
 
 
 def main():
-    parser = argparse.ArgumentParser(description='TODO')  # TODO
+    parser = argparse.ArgumentParser(description='Smart factory simulation')
     parser.add_argument('-v', '--verbose', type=int, help='the verboseness between 0 and 4.', required=False, default="0")
     parser.add_argument('-s', '--seed', type=int, help='Random seed.', required=False, default=42)
     parser.add_argument('--threads', type=int, help='Number of CPU threads TF can use.', required=False, default=4)
     parser.add_argument('-o', '--output_folder', type=str, help='Output folder for the logs.', required=True, default='results')
     parser.add_argument('-w', '--log_workers', action='store_true', help='Save logs of all workers.', required=False, default=False)
+    parser.add_argument('-b', '--baseline', type=int, help="Cancel missing workers 'baseline' minutes before the shift starts.", required=False, default=10)
+    parser.add_argument('-i', '--iterations', type=int, help="Number of iterations to run.", required=False, default=3)
     args = parser.parse_args()
 
     run(args)
