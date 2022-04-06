@@ -102,7 +102,7 @@ class Worker(MovingComponent2D):
 
     def actuate(self):
         if self.state == WorkerState.NOT_ACTIVE_YET:
-            if self.busArrivalTime and SIMULATION_GLOBALS.currentTimeStep >= self.busArrivalTime:
+            if self.busArrivalTime is not None and SIMULATION_GLOBALS.currentTimeStep >= self.busArrivalTime:
                 self.state = WorkerState.WALKING_TO_FACTORY
             return
 

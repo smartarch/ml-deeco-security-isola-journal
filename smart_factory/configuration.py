@@ -1,23 +1,25 @@
 import random
 from typing import Tuple, List
+import numpy as np
+import numpy.random as npr
 
-from helpers import DayOfWeek
 from ml_deeco.simulation import Point2D, SIMULATION_GLOBALS
 
+from helpers import DayOfWeek
 from components import WorkPlace, Factory, Door, Dispenser, Worker
 
 
 class Configuration:
 
-    steps = 80
-    shiftStart = 40
-    shiftEnd = 80
+    steps = 50
+    shiftStart = 30
+    shiftEnd = 50
     workersPerShift = 50
     standbysPerShift = 30
     dayOfWeek = None
 
     outputFolder = None
-    cancellationBaseline = 10
+    cancellationBaseline = 16
 
     def __init__(self):
         if 'CONFIGURATION' in locals():
@@ -49,27 +51,31 @@ def createFactory() -> Tuple[Factory, List[WorkPlace], Point2D]:
     return factory, [workplace1, workplace2, workplace3], busStop
 
 
-weekDayMean, weekDayStd = 20, 5
-weekEndMean, weekEndStd = 20, 5
+# workers arrive by a bus
+weekDayBus = 8
+weekEndBus = 0
+# several workers miss the first bus and arrive by the late bus
 latePercentage = 0.1
-lateWeekDayMean, lateWeekDayStd = 30, 5
-lateWeekEndMean, lateWeekEndStd = 50, 5
-standbyMean, standbyStd = 60, 5
+lateWeekDayBus = 16
+lateWeekEndBus = 30
+# standby needs about 30 minutes to arrive
+standbyMean, standbyStd = 30, 2
 
 
 def setArrivalTime(worker: Worker, dayOfWeek):
     dayOfWeek = DayOfWeek(dayOfWeek % 7)
+    randomDelay = int(np.round(npr.exponential()))
 
     if dayOfWeek in (DayOfWeek.SATURDAY, DayOfWeek.SUNDAY):
         if random.random() < latePercentage:
-            worker.busArrivalTime = int(random.gauss(lateWeekEndMean, lateWeekEndStd))
+            worker.busArrivalTime = lateWeekEndBus + randomDelay
         else:
-            worker.busArrivalTime = int(random.gauss(weekEndMean, weekEndStd))
+            worker.busArrivalTime = weekEndBus + randomDelay
     else:
         if random.random() < latePercentage:
-            worker.busArrivalTime = int(random.gauss(lateWeekDayMean, lateWeekDayStd))
+            worker.busArrivalTime = lateWeekDayBus + randomDelay
         else:
-            worker.busArrivalTime = int(random.gauss(weekDayMean, weekDayStd))
+            worker.busArrivalTime = weekDayBus + randomDelay
 
 
 # we will not simulate the standby, just assume they will start working about an hour after they are called

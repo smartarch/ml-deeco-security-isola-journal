@@ -195,7 +195,7 @@ class ReplaceLateWithStandbys(Ensemble):
         return self.lateWorkersEnsemble.materialized
         # return any(map(lambda e: e.materialized, self.lateWorkersEnsembles))  # TODO: replace with named abstraction
 
-    standbys = someOf(Worker)  # TODO: matching
+    standbys = someOf(Worker)  # TODO: matching -> only API, no implementation
 
     @standbys.select
     def standbys(self, worker, otherEnsembles):

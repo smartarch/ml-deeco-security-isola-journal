@@ -138,7 +138,7 @@ def main():
     parser.add_argument('--threads', type=int, help='Number of CPU threads TF can use.', required=False, default=4)
     parser.add_argument('-o', '--output_folder', type=str, help='Output folder for the logs.', required=True, default='results')
     parser.add_argument('-w', '--log_workers', action='store_true', help='Save logs of all workers.', required=False, default=False)
-    parser.add_argument('-b', '--baseline', type=int, help="Cancel missing workers 'baseline' minutes before the shift starts.", required=False, default=10)
+    parser.add_argument('-b', '--baseline', type=int, help="Cancel missing workers 'baseline' minutes before the shift starts.", required=False, default=16)
     parser.add_argument('-i', '--iterations', type=int, help="Number of iterations to run.", required=False, default=3)
     args = parser.parse_args()
 
