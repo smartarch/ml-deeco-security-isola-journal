@@ -5,12 +5,14 @@ from pathlib import Path
 from typing import List
 import numpy as np
 
+from plots import createPlot
+
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # Report only TF errors by default
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU in TF. The models are small, so it is actually faster to use the CPU.
 import tensorflow as tf
 
 from ml_deeco.simulation import Component, run_experiment
-from ml_deeco.utils import setVerboseLevel, verbosePrint, Log, setVerbosePrintFile
+from ml_deeco.utils import setVerboseLevel, verbosePrint, Log, setVerbosePrintFile, AverageLog
 
 from configuration import CONFIGURATION, createFactory, setArrivalTime
 from components import Shift, Worker
@@ -20,11 +22,12 @@ from helpers import DayOfWeek
 arrivedAtWorkplaceTimeAvgTimes = []
 workerLogs = {}
 cancelledWorkersLog: Log
+shiftsLog = AverageLog(["iteration", "simulation", "shift", "arrived", "standbys", "avg_work_start_time", "lateness"])
 
 
 def computeLateness(workers):
     arrivalTimes = np.array([w.arrivedAtWorkplaceTime for w in workers])
-    return np.mean(np.max(arrivalTimes - CONFIGURATION.shiftStart, 0) ** 2)
+    return float(np.mean(np.max(arrivalTimes - CONFIGURATION.shiftStart, 0) ** 2))
 
 
 def run(args):
@@ -100,9 +103,11 @@ def run(args):
             arrivedAtWorkplaceTimeAvgTimes.append(avgArriveTime)
             standbysCount = len(shift.calledStandbys)
             verbosePrint(f"{shift}: arrived {len(arrivedWorkers)} workers ({standbysCount} standbys), avg. time = {avgArriveTime:.2f}, lateness = {computeLateness(arrivedWorkers):.0f}", 2)
+            shiftsLog.register([i + 1, s + 1, str(shift), len(arrivedWorkers), standbysCount, avgArriveTime, computeLateness(arrivedWorkers)])
 
             for worker in shift.assigned | shift.standbys:
                 workersLog.register([worker, shift, worker.state, worker.isAtFactory, worker.hasHeadGear, worker.busArrivalTime, worker.arrivedAtFactoryTime, worker.arrivedAtWorkplaceTime])
+        shiftsLog.registerAvg()
 
         workersAtFactory = list(filter(lambda c: isinstance(c, Worker) and c.arrivedAtFactoryTime is not None, components))
         if workersAtFactory:
@@ -129,6 +134,9 @@ def run(args):
     run_experiment(args.iterations, 7, CONFIGURATION.steps, prepareSimulation,
                    stepCallback=stepCallback, simulationCallback=simulationCallback, iterationCallback=iterationCallback)
     outputFile.close()
+    shiftsLog.export(CONFIGURATION.outputFolder / "shifts.csv")
+    shiftsLog.exportAvg(CONFIGURATION.outputFolder / "shifts_avg.csv")
+    createPlot(shiftsLog, args.iterations, 7, CONFIGURATION.outputFolder / "shifts.png", show=True)
 
 
 def main():
