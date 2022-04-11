@@ -70,7 +70,7 @@ def plotStandbysAndLateness(shiftsLog, iterations, simulations, filename=None, s
 
     fig.tight_layout()
     if filename:
-        plt.savefig(filename)
+        plt.savefig(filename, dpi=300)
     if show:
         plt.show()
     plt.close(fig)
@@ -109,9 +109,13 @@ def plotLateWorkersNN(estimator, filename=None, subtitle="", show=False, figsize
     yTickLabels = ["M", "T", "W", "T", "F", "S", "S"]
     xTickLabels = [str(x) if x % 3 == 0 else "" for x in range(CONFIGURATION.shiftStart, -1, -1)]
 
+    if not figsize:
+        figsize = (10, 10)
+    fig, ax = plt.subplots(figsize=figsize)
+
     cmap = generateColormap()
     sns.heatmap(outputs,
-                vmin=0, vmax=1, cmap=cmap,
+                vmin=0, vmax=1, cmap=cmap, ax=ax,
                 yticklabels=yTickLabels, xticklabels=xTickLabels)
 
     plt.xlabel("Time to shift")
@@ -122,7 +126,7 @@ def plotLateWorkersNN(estimator, filename=None, subtitle="", show=False, figsize
     plt.title(title)
 
     if filename:
-        plt.gcf().savefig(filename)
+        plt.gcf().savefig(filename, dpi=300)
     if show:
         plt.show()
 
@@ -149,7 +153,7 @@ if __name__ == '__main__':
             elif col == "standbys":
                 return [float(d[standbysIndex]) for d in data]
 
-    plotStandbysAndLateness(DummyShiftsLog(), len(data) // 7, 7, show=True)
+    plotStandbysAndLateness(DummyShiftsLog(), len(data) // 7, 7, show=True, figsize=(9, 5), filename=folder / "shifts.pdf")
 
     # NN
     import tensorflow as tf
@@ -162,4 +166,4 @@ if __name__ == '__main__':
             return model(x).numpy()
 
 
-    plotLateWorkersNN(EstimatorDummy(), show=True, filename=folder / "nn.png")
+    plotLateWorkersNN(EstimatorDummy(), show=True, filename=folder / "nn.png", figsize=(9, 5))

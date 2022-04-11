@@ -136,6 +136,8 @@ def run(args):
         verbosePrint(f"Average arrival time in the iteration: {avgTimesAverage:.2f}", 1)
         arrivedAtWorkplaceTimeAvgTimes = []
 
+        # save the NN
+        CONFIGURATION.lateWorkersNN.saveModel(str(i + 1))
         plotLateWorkersNN(CONFIGURATION.lateWorkersNN, CONFIGURATION.outputFolder / f"nn_{i + 1}.png", f"Iteration {i + 1}", show=args.show_plots)
 
     run_experiment(args.iterations, 7, CONFIGURATION.steps, prepareSimulation,
@@ -144,9 +146,6 @@ def run(args):
     shiftsLog.export(CONFIGURATION.outputFolder / "shifts.csv")
     shiftsLog.exportAvg(CONFIGURATION.outputFolder / "shifts_avg.csv")
     plotStandbysAndLateness(shiftsLog, args.iterations, 7, CONFIGURATION.outputFolder / "shifts.png", show=args.show_plots)
-
-    # save the NN
-    CONFIGURATION.lateWorkersNN.saveModel()
 
 
 def main():
