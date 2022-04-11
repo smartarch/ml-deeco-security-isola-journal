@@ -127,8 +127,7 @@ class CancelLateWorkers(Ensemble):
     lateWorkers = someOf(Worker, selectedAllAtOnce=True)\
         .withValueEstimate(collectOnlyIfMaterialized=False)\
         .inTimeStepsRange(1, 20, trainingPercentage=0.1)\
-        .using(NeuralNetworkEstimator([32, 32], fit_params={"batch_size": 1024},
-                                      name="worker_arrives", outputFolder=CONFIGURATION.outputFolder / "worker_arrives"))\
+        .using(CONFIGURATION.lateWorkersNN)\
         .withBaseline(isLateBaseline)
 
     @lateWorkers.select
@@ -149,17 +148,13 @@ class CancelLateWorkers(Ensemble):
     def potentiallyLate(self, worker):
         return not worker.isAtFactory and self.belongsToShift(worker)
 
-    @lateWorkers.estimate.input(NumericFeature(0, CONFIGURATION.workersPerShift))
-    def alreadyPresentWorkers(self, worker):
-        return len(list(filter(lambda w: w.isAtFactory, self.shift.workers)))
+    # @lateWorkers.estimate.input(NumericFeature(0, CONFIGURATION.workersPerShift))
+    # def alreadyPresentWorkers(self, worker):
+    #     return len(list(filter(lambda w: w.isAtFactory, self.shift.workers)))
 
     @lateWorkers.estimate.input(CategoricalFeature(DayOfWeek))
     def dayOfWeek(self, worker):
         return CONFIGURATION.dayOfWeek
-
-    @lateWorkers.estimate.input(NumericFeature(0, CONFIGURATION.steps))
-    def currentTime(self, worker):
-        return now()
 
     # @lateWorkers.estimate.condition
     # def arrived(self, worker):

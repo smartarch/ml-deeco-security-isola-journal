@@ -5,13 +5,14 @@ from pathlib import Path
 from typing import List
 import numpy as np
 
-from plots import createPlot
+from ml_deeco.estimators import NeuralNetworkEstimator
+from plots import plotStandbysAndLateness, plotLateWorkersNN
 
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # Report only TF errors by default
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU in TF. The models are small, so it is actually faster to use the CPU.
 import tensorflow as tf
 
-from ml_deeco.simulation import Component, run_experiment
+from ml_deeco.simulation import Component, run_experiment, SIMULATION_GLOBALS
 from ml_deeco.utils import setVerboseLevel, verbosePrint, Log, setVerbosePrintFile, AverageLog
 
 from configuration import CONFIGURATION, createFactory, setArrivalTime
@@ -41,13 +42,17 @@ def run(args):
     tf.config.threading.set_inter_op_parallelism_threads(args.threads)
     tf.config.threading.set_intra_op_parallelism_threads(args.threads)
 
-    # initialize configuration
-    CONFIGURATION.cancellationBaseline = args.baseline
-
     # initialize output path
     CONFIGURATION.outputFolder = Path(args.output_folder)
     os.makedirs(CONFIGURATION.outputFolder, exist_ok=True)
     outputFile = open(CONFIGURATION.outputFolder / "output.txt", "w")
+
+    # initialize configuration
+    CONFIGURATION.cancellationBaseline = args.baseline
+    CONFIGURATION.lateWorkersNN = NeuralNetworkEstimator(
+        [32, 32], fit_params={"batch_size": 1024},
+        name="late_workers", outputFolder=CONFIGURATION.outputFolder / "late_workers"
+    )
 
     # initialize verbose printing
     setVerboseLevel(args.verbose)
@@ -136,7 +141,11 @@ def run(args):
     outputFile.close()
     shiftsLog.export(CONFIGURATION.outputFolder / "shifts.csv")
     shiftsLog.exportAvg(CONFIGURATION.outputFolder / "shifts_avg.csv")
-    createPlot(shiftsLog, args.iterations, 7, CONFIGURATION.outputFolder / "shifts.png", show=True)
+    plotStandbysAndLateness(shiftsLog, args.iterations, 7, CONFIGURATION.outputFolder / "shifts.png", show=True)
+
+    # save the NN
+    CONFIGURATION.lateWorkersNN.saveModel()
+    plotLateWorkersNN(CONFIGURATION.lateWorkersNN, CONFIGURATION.outputFolder / "nn.png")
 
 
 def main():

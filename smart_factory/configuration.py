@@ -20,6 +20,7 @@ class Configuration:
 
     outputFolder = None
     cancellationBaseline = 16
+    lateWorkersNN = None
 
     def __init__(self):
         if 'CONFIGURATION' in locals():
