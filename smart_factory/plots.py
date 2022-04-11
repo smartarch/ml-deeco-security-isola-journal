@@ -7,6 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from matplotlib.colors import ListedColormap
 
 from configuration import CONFIGURATION
 from helpers import DayOfWeek
@@ -75,6 +76,21 @@ def plotStandbysAndLateness(shiftsLog, iterations, simulations, filename=None, s
     plt.close(fig)
 
 
+def generateColormap():
+
+    def lerp(a, b, t):
+        return tuple(a[i] * (1 - t) + b[i] * t for i in range(len(a)))
+
+    def to01(color):
+        return tuple(c / 255 for c in color)
+
+    cc = 50  # colors count
+    green0, green1 = to01((175, 255, 171)), to01((25, 199, 16))
+    red0, red1 = to01((209, 41, 21)), to01((66, 7, 0))
+
+    return ListedColormap([lerp(green0, green1, t / cc) for t in range(cc)] + [lerp(red0, red1, t / cc) for t in range(cc)])
+
+
 def plotLateWorkersNN(estimator, filename=None, subtitle="", show=False, figsize=None):
     timeSteps = CONFIGURATION.shiftStart + 1
     timeToShift = np.linspace(CONFIGURATION.shiftStart / CONFIGURATION.steps, 0, timeSteps)
@@ -93,13 +109,9 @@ def plotLateWorkersNN(estimator, filename=None, subtitle="", show=False, figsize
     yTickLabels = ["M", "T", "W", "T", "F", "S", "S"]
     xTickLabels = [str(x) if x % 3 == 0 else "" for x in range(CONFIGURATION.shiftStart, -1, -1)]
 
-    sns.heatmap(outputs, mask=outputs >= 0.5,
-                vmin=0, vmax=1,
-                cmap=sns.dark_palette("seagreen", as_cmap=True),
-                yticklabels=yTickLabels, xticklabels=xTickLabels)
-    sns.heatmap(outputs, mask=outputs < 0.5,
-                vmin=0, vmax=1,
-                cmap=sns.dark_palette("salmon", as_cmap=True),
+    cmap = generateColormap()
+    sns.heatmap(outputs,
+                vmin=0, vmax=1, cmap=cmap,
                 yticklabels=yTickLabels, xticklabels=xTickLabels)
 
     plt.xlabel("Time to shift")
