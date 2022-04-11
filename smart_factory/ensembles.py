@@ -126,7 +126,7 @@ class CancelLateWorkers(Ensemble):
 
     lateWorkers = someOf(Worker, selectedAllAtOnce=True)\
         .withValueEstimate(collectOnlyIfMaterialized=False)\
-        .inTimeStepsRange(1, 20, trainingPercentage=0.1)\
+        .inTimeStepsRange(1, 20, trainingPercentage=0.2)\
         .using(CONFIGURATION.lateWorkersNN)\
         .withBaseline(isLateBaseline)
 

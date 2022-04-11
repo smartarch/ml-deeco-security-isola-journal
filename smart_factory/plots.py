@@ -1,5 +1,7 @@
 import argparse
+import csv
 from pathlib import Path
+from statistics import mean
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,7 +17,17 @@ font = {'size': 12}
 matplotlib.rc('font', **font)
 
 
-def plotStandbysAndLateness(shiftsLog, iterations, simulations, filename, show=False, figsize=None):
+def computeWeeklyAverages(data, iterations, simulations):
+    result = []
+    for i in range(iterations):
+        weekStart = i * simulations
+        week = data[weekStart:weekStart + simulations]
+        result.extend([mean(week[:5])] * 5)   # work days
+        result.extend([mean(week[-2:])] * 2)  # weekend
+    return result
+
+
+def plotStandbysAndLateness(shiftsLog, iterations, simulations, filename=None, show=False, figsize=None):
     if not figsize:
         figsize = (10, 10)
     fig, ax_s = plt.subplots(figsize=figsize)
@@ -24,32 +36,46 @@ def plotStandbysAndLateness(shiftsLog, iterations, simulations, filename, show=F
     x = list(range(1, iterations * simulations + 1))
 
     standbys = shiftsLog.getColumnAvg("standbys")
+    standbysAvg = computeWeeklyAverages(standbys, iterations, simulations)
     lateness = shiftsLog.getColumnAvg("lateness")
+    latenessAvg = computeWeeklyAverages(lateness, iterations, simulations)
 
     ax_l = ax_s.twinx()
 
-    ax_s.plot(x, standbys, c='tab:blue')
-    ax_l.plot(x, lateness, c='tab:orange')
+    legend = []
+    legend.append(ax_s.plot(x, standbys, c='tab:blue', marker="o", linestyle="None", label="Standbys"))
+    ax_s.plot(x, standbysAvg, c='tab:blue', linestyle="dashed")
+    legend.append(ax_l.plot(x, lateness, c='tab:orange', marker="o", linestyle="None", label="Lateness"))
+    ax_l.plot(x, latenessAvg, c='tab:orange', linestyle="dashed")
 
     if iterations > 1:
         yLines = np.linspace(simulations + 0.5, ((iterations - 1) * simulations) + 0.5, iterations - 1)
         ax_s.vlines(x=yLines, colors='black', ymin=0, ymax=max(standbys), linestyle='dotted')
         twin_y = ax_s.twiny()
+        twin_y.set_xlim(ax_s.get_xlim())
         twin_y.set_xticks(yLines, labels=[f"Training {i + 1}" for i in range(iterations - 1)])
 
     ax_s.set_xticks(x, labels=xLabels)
+    ax_s.set_xlabel("Day of week")
 
     ax_s.set_ylabel("Standbys")
     ax_l.set_ylabel("Lateness")
 
+    lines = [line for lines in legend for line in lines]
+    labels = [line.get_label() for line in lines]
+    ax_l.legend(lines, labels)
+
+    plt.title("Number of standbys and lateness in the smart factory simulation")
+
     fig.tight_layout()
-    plt.savefig(filename)
+    if filename:
+        plt.savefig(filename)
     if show:
         plt.show()
     plt.close(fig)
 
 
-def plotLateWorkersNN(estimator, filename=None, figsize=None):
+def plotLateWorkersNN(estimator, filename=None, subtitle="", show=False, figsize=None):
     timeSteps = CONFIGURATION.shiftStart + 1
     timeToShift = np.linspace(CONFIGURATION.shiftStart / CONFIGURATION.steps, 0, timeSteps)
     daysOfWeekFeature = CategoricalFeature(DayOfWeek)
@@ -75,10 +101,18 @@ def plotLateWorkersNN(estimator, filename=None, figsize=None):
                 vmin=0, vmax=1,
                 cmap=sns.dark_palette("salmon", as_cmap=True),
                 yticklabels=yTickLabels, xticklabels=xTickLabels)
-    plt.show()
+
+    plt.xlabel("Time to shift")
+    plt.ylabel("Day of week")
+    title = "Neural network output"
+    if subtitle:
+        title += "\n" + subtitle
+    plt.title(title)
 
     if filename:
-        plt.savefig(filename)
+        plt.gcf().savefig(filename)
+    if show:
+        plt.show()
 
 
 if __name__ == '__main__':
@@ -87,6 +121,25 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     folder = Path(args.output_folder)
+
+    # standbys and lateness
+    with open(folder / "shifts_avg.csv", newline="") as csvfile:
+        reader = csv.reader(csvfile)
+        data = list(reader)
+    latenessIndex = data[0].index("lateness")
+    standbysIndex = data[0].index("standbys")
+    del data[0]
+
+    class DummyShiftsLog:
+        def getColumnAvg(self, col):
+            if col == "lateness":
+                return [float(d[latenessIndex]) for d in data]
+            elif col == "standbys":
+                return [float(d[standbysIndex]) for d in data]
+
+    plotStandbysAndLateness(DummyShiftsLog(), len(data) // 7, 7, show=True)
+
+    # NN
     import tensorflow as tf
 
     model = tf.keras.models.load_model(folder / "late_workers" / "model.h5")
@@ -97,4 +150,4 @@ if __name__ == '__main__':
             return model(x).numpy()
 
 
-    plotLateWorkersNN(EstimatorDummy())
+    plotLateWorkersNN(EstimatorDummy(), show=True, filename=folder / "nn.png")

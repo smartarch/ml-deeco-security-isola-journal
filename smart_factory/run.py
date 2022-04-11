@@ -9,7 +9,7 @@ from ml_deeco.estimators import NeuralNetworkEstimator
 from plots import plotStandbysAndLateness, plotLateWorkersNN
 
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # Report only TF errors by default
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU in TF. The models are small, so it is actually faster to use the CPU.
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU in TF. The models are small, so it is actually faster to use the CPU.
 import tensorflow as tf
 
 from ml_deeco.simulation import Component, run_experiment, SIMULATION_GLOBALS
@@ -50,7 +50,7 @@ def run(args):
     # initialize configuration
     CONFIGURATION.cancellationBaseline = args.baseline
     CONFIGURATION.lateWorkersNN = NeuralNetworkEstimator(
-        [32, 32], fit_params={"batch_size": 1024},
+        [32, 64, 32], fit_params={"batch_size": 4096},
         name="late_workers", outputFolder=CONFIGURATION.outputFolder / "late_workers"
     )
 
@@ -130,22 +130,23 @@ def run(args):
             for worker in filter(lambda c: isinstance(c, Worker), components):
                 workerLogs[worker].export(CONFIGURATION.outputFolder / f"all_workers/{i+1}/{s+1}/{worker}.csv")
 
-    def iterationCallback(_i):
+    def iterationCallback(i):
         global arrivedAtWorkplaceTimeAvgTimes
         avgTimesAverage = sum(arrivedAtWorkplaceTimeAvgTimes) / len(arrivedAtWorkplaceTimeAvgTimes)
         verbosePrint(f"Average arrival time in the iteration: {avgTimesAverage:.2f}", 1)
         arrivedAtWorkplaceTimeAvgTimes = []
+
+        plotLateWorkersNN(CONFIGURATION.lateWorkersNN, CONFIGURATION.outputFolder / f"nn_{i + 1}.png", f"Iteration {i + 1}", show=args.show_plots)
 
     run_experiment(args.iterations, 7, CONFIGURATION.steps, prepareSimulation,
                    stepCallback=stepCallback, simulationCallback=simulationCallback, iterationCallback=iterationCallback)
     outputFile.close()
     shiftsLog.export(CONFIGURATION.outputFolder / "shifts.csv")
     shiftsLog.exportAvg(CONFIGURATION.outputFolder / "shifts_avg.csv")
-    plotStandbysAndLateness(shiftsLog, args.iterations, 7, CONFIGURATION.outputFolder / "shifts.png", show=True)
+    plotStandbysAndLateness(shiftsLog, args.iterations, 7, CONFIGURATION.outputFolder / "shifts.png", show=args.show_plots)
 
     # save the NN
     CONFIGURATION.lateWorkersNN.saveModel()
-    plotLateWorkersNN(CONFIGURATION.lateWorkersNN, CONFIGURATION.outputFolder / "nn.png")
 
 
 def main():
@@ -157,6 +158,7 @@ def main():
     parser.add_argument('-w', '--log_workers', action='store_true', help='Save logs of all workers.', required=False, default=False)
     parser.add_argument('-b', '--baseline', type=int, help="Cancel missing workers 'baseline' minutes before the shift starts.", required=False, default=16)
     parser.add_argument('-i', '--iterations', type=int, help="Number of iterations to run.", required=False, default=3)
+    parser.add_argument('-p', '--show_plots', action='store_true', help='Show plots during the run.', required=False, default=False)
     args = parser.parse_args()
 
     run(args)

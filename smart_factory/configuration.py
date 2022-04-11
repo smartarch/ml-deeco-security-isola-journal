@@ -14,8 +14,8 @@ class Configuration:
     steps = 50
     shiftStart = 30
     shiftEnd = 50
-    workersPerShift = 50
-    standbysPerShift = 30
+    workersPerShift = 100
+    standbysPerShift = 50
     dayOfWeek = None
 
     outputFolder = None
@@ -53,12 +53,12 @@ def createFactory() -> Tuple[Factory, List[WorkPlace], Point2D]:
 
 
 # workers arrive by a bus
-weekDayBus = 8
+weekDayBus = 6
 weekEndBus = 0
 # several workers miss the first bus and arrive by the late bus
 latePercentage = 0.1
-lateWeekDayBus = 16
-lateWeekEndBus = 30
+lateWeekDayBus = 12
+lateWeekEndBus = 15
 # standby needs about 30 minutes to arrive
 standbyMean, standbyStd = 30, 2
 
