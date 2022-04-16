@@ -172,10 +172,9 @@ class CancelLateWorkers(Ensemble):
             worker.state = WorkerState.CANCELLED  # this is instead of the notification
 
 
-# TODO: do the replacement as matching for all the shifts simultaneously
 class ReplaceLateWithStandbys(Ensemble):
 
-    lateWorkersEnsemble: CancelLateWorkers  # TODO: list
+    lateWorkersEnsemble: CancelLateWorkers
     shift: Shift
 
     def __init__(self, lateWorkersEnsemble: CancelLateWorkers):
@@ -188,9 +187,8 @@ class ReplaceLateWithStandbys(Ensemble):
 
     def situation(self):
         return self.lateWorkersEnsemble.materialized
-        # return any(map(lambda e: e.materialized, self.lateWorkersEnsembles))  # TODO: replace with named abstraction
 
-    standbys = someOf(Worker)  # TODO: matching -> only API, no implementation
+    standbys = someOf(Worker)
 
     @standbys.select
     def standbys(self, worker, otherEnsembles):

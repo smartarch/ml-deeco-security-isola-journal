@@ -33,7 +33,7 @@ def plotStandbysAndLateness(shiftsLog, iterations, simulations, filename=None, s
         figsize = (10, 10)
     fig, ax_s = plt.subplots(figsize=figsize)
 
-    xLabels = ["M", "T", "W", "T", "F", "S", "S"][:simulations] * iterations
+    xLabels = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"][:simulations] * iterations
     x = list(range(1, iterations * simulations + 1))
 
     standbys = shiftsLog.getColumnAvg("standbys")
@@ -106,7 +106,7 @@ def plotLateWorkersNN(estimator, filename=None, subtitle="", show=False, figsize
     outputs = estimator.predictBatch(records)
     outputs = outputs.reshape([7, timeSteps])
 
-    yTickLabels = ["M", "T", "W", "T", "F", "S", "S"]
+    yTickLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     xTickLabels = [str(x) if x % 3 == 0 else "" for x in range(CONFIGURATION.shiftStart, -1, -1)]
 
     if not figsize:
@@ -124,6 +124,9 @@ def plotLateWorkersNN(estimator, filename=None, subtitle="", show=False, figsize
     if subtitle:
         title += "\n" + subtitle
     plt.title(title)
+
+    plt.text(37, 5.25, "Worker will arrive.", rotation='vertical', verticalalignment='center')
+    plt.text(37, 1.75, "Worker will be late.", rotation='vertical', verticalalignment='center')
 
     if filename:
         plt.gcf().savefig(filename, dpi=300)
