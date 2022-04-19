@@ -10,6 +10,7 @@ from helpers import allow, now, DayOfWeek
 
 
 class ShiftTeam(Ensemble):
+    """All working workers in one shift (those not cancelled, incl. called standbys)."""
 
     shift: Shift
 

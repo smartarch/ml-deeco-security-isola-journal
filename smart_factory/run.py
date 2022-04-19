@@ -5,19 +5,18 @@ from pathlib import Path
 from typing import List
 import numpy as np
 
-from ml_deeco.estimators import NeuralNetworkEstimator
-from plots import plotStandbysAndLateness, plotLateWorkersNN
-
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # Report only TF errors by default
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU in TF. The models are small, so it is actually faster to use the CPU.
 import tensorflow as tf
 
+from ml_deeco.estimators import NeuralNetworkEstimator
 from ml_deeco.simulation import Component, run_experiment, SIMULATION_GLOBALS
 from ml_deeco.utils import setVerboseLevel, verbosePrint, Log, setVerbosePrintFile, AverageLog
 
 from configuration import CONFIGURATION, createFactory, setArrivalTime
 from components import Shift, Worker
 from helpers import DayOfWeek
+from plots import plotStandbysAndLateness, plotLateWorkersNN
 
 
 arrivedAtWorkplaceTimeAvgTimes = []
@@ -27,6 +26,7 @@ shiftsLog = AverageLog(["iteration", "simulation", "shift", "arrived", "standbys
 
 
 def computeLateness(workers):
+    """Mean of square of delay of workers which arrive late."""
     arrivalTimes = np.array([w.arrivedAtWorkplaceTime for w in workers])
     return float(np.mean(np.max(arrivalTimes - CONFIGURATION.shiftStart, 0) ** 2))
 
@@ -61,6 +61,7 @@ def run(args):
     from ensembles import getEnsembles, CancelLateWorkers
 
     def prepareSimulation(_i, simulation):
+        """Prepares the components and ensembles for the simul """
         global workerLogs, cancelledWorkersLog
         workerLogs = {}
         cancelledWorkersLog = Log(["time", "worker", "bus_arrival", "shift"])

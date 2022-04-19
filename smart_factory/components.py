@@ -7,6 +7,7 @@ from ml_deeco.simulation import StationaryComponent2D, MovingComponent2D, Compon
 
 
 class SecurityComponent(Component):
+    """Base class for components with security rules (Door, Dispenser)."""
 
     def __init__(self):
         super().__init__()
@@ -101,6 +102,7 @@ class Worker(MovingComponent2D):
         self.arrivedAtWorkplaceTime: Optional[int] = None
 
     def actuate(self):
+        # activate the worker if he arrived by bus
         if self.state == WorkerState.NOT_ACTIVE_YET:
             if self.busArrivalTime is not None and SIMULATION_GLOBALS.currentTimeStep >= self.busArrivalTime:
                 self.state = WorkerState.WALKING_TO_FACTORY
@@ -109,10 +111,12 @@ class Worker(MovingComponent2D):
         if self.state == WorkerState.CANCELLED or self.state == WorkerState.CALLED_STANDBY:
             return
 
+        # walk to the factory
         if self.state == WorkerState.WALKING_TO_FACTORY:
             if self.move(self.factory.entryDoor.location):
                 self.state = WorkerState.AT_FACTORY_DOOR
 
+        # enter the factory
         if self.state == WorkerState.AT_FACTORY_DOOR:
             if self.factory.entryDoor.allows(self, 'enter'):
                 self.state = WorkerState.WALKING_TO_DISPENSER
@@ -121,16 +125,19 @@ class Worker(MovingComponent2D):
                 verbosePrint(f"{self}: arrived at factory", 4)
                 return
 
+        # walk to the dispenser
         if self.state == WorkerState.WALKING_TO_DISPENSER:
             if self.move(self.factory.dispenser.location):
                 self.state = WorkerState.AT_DISPENSER
 
+        # use the dispenser
         if self.state == WorkerState.AT_DISPENSER:
             if self.factory.dispenser.allows(self, 'use'):
                 self.state = WorkerState.WALKING_TO_WORKPLACE
                 self.hasHeadGear = True
                 return
 
+        # work to the workplace
         if self.state == WorkerState.WALKING_TO_WORKPLACE:
             if self.pathToWorkplaceIndex >= len(self.workplace.pathTo):
                 if self.move(self.workplace.entryDoor.location):
@@ -139,6 +146,7 @@ class Worker(MovingComponent2D):
                 if self.move(self.workplace.pathTo[self.pathToWorkplaceIndex]):
                     self.pathToWorkplaceIndex += 1
 
+        # enter the workplace and start working
         if self.state == WorkerState.AT_WORKPLACE_DOOR:
             if self.workplace.entryDoor.allows(self, 'enter'):
                 self.state = WorkerState.AT_WORKPLACE
