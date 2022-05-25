@@ -41,7 +41,7 @@ py run.py -o results -b 16 -v 2 -i 3 -p
 
 #### Security-related
 
-* `ShiftTeam` &dnash; all working workers in one shift (those not cancelled, incl. called standbys)
+* `ShiftTeam` - all working workers in one shift (those not cancelled, incl. called standbys)
 * `AccessToFactory`
 * `AccessToDispenser`
 * `AccessToWorkPlace`
