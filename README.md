@@ -1,6 +1,6 @@
 # ML-DEECo for Security rules
 
-This is an accompanying repository to the paper *Ensemble-based modeling abstractions for modern self-optimizing systems* by Milad Abdullah, Michal Töpfer, Tomáš Bureš, Petr Hnětynka, and Martin Kruliš.
+This is an accompanying repository to the paper *Ensemble-based modeling abstractions for modern self-optimizing systems* by Michal Töpfer, Milad Abdullah, Tomáš Bureš, Petr Hnětynka, and Martin Kruliš.
 
 It also serves as a replication package for Master thesis *Machine-learning-based self-adaptation of component ensembles* by Michal Töpfer.
 
