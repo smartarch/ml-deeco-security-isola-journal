@@ -65,7 +65,7 @@ The percentage of late workers can be set by the `--late` option (e.g., `--late 
 
 #### Security-related
 
-* `ShiftTeam` &dnash; all working workers in one shift (those not cancelled, incl. called standbys)
+* `ShiftTeam` - all working workers in one shift (those not cancelled, incl. called standbys)
 * `AccessToFactory`
 * `AccessToDispenser`
 * `AccessToWorkPlace`
