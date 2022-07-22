@@ -31,6 +31,30 @@ py run.py -o results -b 16 -v 2 -i 3 -p
 * `-i 3` sets the three iterations
 * `-p` enables displaying the plots with results
 
+Running the experiment with these parameters will perform three iterations &dnash; each simulating one week. In the first iteration, we use the rigid rule of canceling workers 16 minutes before their shift starts (baseline). Using the data collected in the first iteration, the machine-learning-based model is trained, and it is then used in the second iteration. Similarly, we use the data collected during the second iteration to update the model and then use it during the third iteration.
+
+The experiment produces the following charts as results. They are described in more detail in the paper.
+
+![Number of standbys and lateness in the smart factory simulation](results/16/shifts.png)
+
+![Neural network output](results/16/nn.png)
+
+## Results for 20% and 30% of late workers
+
+The percentage of late workers can be set by the `--late` option (e.g., `--late 0.2`).
+
+### 20% of late workers
+
+![Number of standbys and lateness in the smart factory simulation](results/0.2_16/shifts.png)
+
+![Neural network output](results/0.2_16/nn.png)
+
+### 30% of late workers
+
+![Number of standbys and lateness in the smart factory simulation](results/0.3_16/shifts.png)
+
+![Neural network output](results/0.3_16/nn.png)
+
 ## Simulation overview
 
 ### [Components](components.py)

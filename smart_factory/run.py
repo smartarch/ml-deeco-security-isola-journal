@@ -49,6 +49,7 @@ def run(args):
 
     # initialize configuration
     CONFIGURATION.cancellationBaseline = args.baseline
+    CONFIGURATION.latePercentage = args.late
     CONFIGURATION.lateWorkersNN = NeuralNetworkEstimator(
         [32, 64, 32], fit_params={"batch_size": 4096},
         name="late_workers", outputFolder=CONFIGURATION.outputFolder / "late_workers"
@@ -157,6 +158,7 @@ def main():
     parser.add_argument('-o', '--output_folder', type=str, help='Output folder for the logs.', required=True, default='results')
     parser.add_argument('-w', '--log_workers', action='store_true', help='Save logs of all workers.', required=False, default=False)
     parser.add_argument('-b', '--baseline', type=int, help="Cancel missing workers 'baseline' minutes before the shift starts.", required=False, default=16)
+    parser.add_argument('-l', '--late', type=float, help="Percentage of late workers.", required=False, default=0.1)
     parser.add_argument('-i', '--iterations', type=int, help="Number of iterations to run.", required=False, default=3)
     parser.add_argument('-p', '--show_plots', action='store_true', help='Show plots during the run.', required=False, default=False)
     args = parser.parse_args()

@@ -16,6 +16,7 @@ class Configuration:
     shiftEnd = 50
     workersPerShift = 100
     standbysPerShift = 50
+    latePercentage = 0.1
     dayOfWeek = None
 
     outputFolder = None
@@ -56,7 +57,6 @@ def createFactory() -> Tuple[Factory, List[WorkPlace], Point2D]:
 weekDayBus = 6
 weekEndBus = 0
 # several workers miss the first bus and arrive by the late bus
-latePercentage = 0.1
 lateWeekDayBus = 12
 lateWeekEndBus = 15
 # standby needs about 30 minutes to arrive
@@ -68,12 +68,12 @@ def setArrivalTime(worker: Worker, dayOfWeek):
     randomDelay = int(np.round(npr.exponential()))
 
     if dayOfWeek in (DayOfWeek.SATURDAY, DayOfWeek.SUNDAY):
-        if random.random() < latePercentage:
+        if random.random() < CONFIGURATION.latePercentage:
             worker.busArrivalTime = lateWeekEndBus + randomDelay
         else:
             worker.busArrivalTime = weekEndBus + randomDelay
     else:
-        if random.random() < latePercentage:
+        if random.random() < CONFIGURATION.latePercentage:
             worker.busArrivalTime = lateWeekDayBus + randomDelay
         else:
             worker.busArrivalTime = weekDayBus + randomDelay
