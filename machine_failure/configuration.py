@@ -9,7 +9,7 @@ class Configuration:
     timeToFailureEstimator = None
     failureThreshold = 0.5
     timeToRepair = 30
-    machineCount = 3
+    machineCount = 10
 
     @staticmethod
     def failureRateMean(timeSinceLastRepair):

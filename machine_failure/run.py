@@ -72,7 +72,8 @@ class ProductionMachineExperiment(Experiment):
             self.machineLogs[machine].export(CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/{machine}.csv")
             machine.maintenanceLog.export(CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/{machine}_maintenance.csv")
             machine.repairLog.export(CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/{machine}_repair.csv")
-        plotFailureRate(self.machineLogs, filename=CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/failure_rate.png")
+        plotFailureRate(self.machineLogs, maxMachines=1, filename=CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/failure_rate.png",
+                        title=f"Failure rate of machines\nIteration {i+1}")
         verbosePrint(f"Total running time: {self.computeMachinesRunning()}", 2)
 
     def iterationCallback(self, i):
