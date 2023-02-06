@@ -1,3 +1,7 @@
+import math
+import random
+
+
 class Configuration:
 
     steps = 500
@@ -8,10 +12,19 @@ class Configuration:
     machineCount = 10
 
     @staticmethod
-    def failureRateMean(x):
-        return (1.1 ** (x - 100)) / 2  # exponential, at x == 100 => return 0.5 (which is failThreshold)
+    def failureRateMean(timeSinceLastFailure):
+        # return (1.1 ** (timeSinceLastFailure - 100)) / 2  # exponential, at x == 100 => return 0.5 (which is failThreshold)
+        return 0.5 / (1 + math.exp(-0.1 * (timeSinceLastFailure - 60)))  # sigmoid, > 0.4 around x == 75
 
-    failureRateVariance = 0.05
+    @staticmethod
+    def failureRateVariance(timeSinceLastFailure):
+        return 0.01 + timeSinceLastFailure / 2500
+
+    # @staticmethod
+    # def failureRateAdd(timeSinceLastFailure):
+    #     if timeSinceLastFailure < 50:
+    #         return random.random() / 500
+    #     return random.random() / 100
 
     def __init__(self):
         if 'CONFIGURATION' in locals():

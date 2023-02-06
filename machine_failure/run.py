@@ -62,9 +62,9 @@ class ProductionMachineExperiment(Experiment):
         os.makedirs(CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}", exist_ok=True)
         for machine in components:
             self.machineLogs[machine].export(CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/{machine}.csv")
-        plotFailureRate(self.machineLogs, filename=CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/failure_rate.png", show=True)
+        plotFailureRate(self.machineLogs, filename=CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/failure_rate.png")
 
-    def trainingCallbackCallback(self, i):
+    def trainingCallback(self, i):
         # save the ML model
         CONFIGURATION.timeToFailureEstimator.saveModel(i)
 

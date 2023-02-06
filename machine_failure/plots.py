@@ -18,7 +18,7 @@ def plotFailureRate(machineLogs, maxMachines=None, filename=None, show=False, fi
 
     ax.set_xlabel("Time")
     ax.set_ylabel("Failure rate")
-    ax.legend()
+    # ax.legend()
 
     plt.title("Failure rate of machines")
 

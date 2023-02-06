@@ -40,7 +40,11 @@ class ProductionMachine(Component):
         self.timeSinceLastFailure = 0
 
     def simulateFailureRate(self):
-        self.failureRate = np.random.normal(CONFIGURATION.failureRateMean(self.timeSinceLastFailure), CONFIGURATION.failureRateVariance)
+        self.failureRate = np.random.normal(
+            CONFIGURATION.failureRateMean(self.timeSinceLastFailure),
+            CONFIGURATION.failureRateVariance(self.timeSinceLastFailure)
+        )
+        # self.failureRate += CONFIGURATION.failureRateAdd(self.timeSinceLastFailure)
         self.timeSinceLastFailure += 1
 
     def actuate(self):
