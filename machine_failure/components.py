@@ -1,5 +1,3 @@
-import numpy as np
-
 from ml_deeco.estimators import TimeEstimate, NumericFeature
 from ml_deeco.simulation import Component
 
@@ -27,6 +25,8 @@ class ProductionMachine(Component):
     @timeToFailure.input(NumericFeature(0, 1))
     def failure_rate(self):
         return self.failureRate
+
+    # TODO: use timeSinceLastRepair as input?
 
     @timeToFailure.inputsValid
     def is_running(self):
@@ -60,11 +60,7 @@ class ProductionMachine(Component):
             pass  # maintenance is already called
 
     def simulateFailureRate(self):
-        self.failureRate = np.random.normal(
-            CONFIGURATION.failureRateMean(self.timeSinceLastRepair),
-            CONFIGURATION.failureRateVariance(self.timeSinceLastRepair)
-        )
-        # self.failureRate += CONFIGURATION.failureRateAdd(self.timeSinceLastRepair)
+        self.failureRate = CONFIGURATION.getFailureRate(self.failureRate, self.timeSinceLastRepair)
         self.failureRate = max(self.failureRate, 0)
         self.timeSinceLastRepair += 1
 
@@ -72,6 +68,8 @@ class ProductionMachine(Component):
         """Call the maintenance if we predict the machine will fail soon"""
         timeToFailure = self.timeToFailure()
         if timeToFailure is None:  # baseline without failure prevention
+            # if self.timeSinceLastRepair >= 50:
+            #     self.callMaintenance()
             return
 
         if timeToFailure < CONFIGURATION.timeToRepair:

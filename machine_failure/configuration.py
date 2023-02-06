@@ -1,6 +1,8 @@
 import math
 import random
 
+import numpy as np
+
 
 class Configuration:
 
@@ -11,20 +13,26 @@ class Configuration:
     timeToRepair = 30
     machineCount = 10
 
-    @staticmethod
-    def failureRateMean(timeSinceLastRepair):
-        # return (1.1 ** (timeSinceLastFailure - 100)) / 2  # exponential, at x == 100 => return 0.5 (which is failThreshold)
-        return 0.5 / (1 + math.exp(-0.1 * (timeSinceLastRepair - 60)))  # sigmoid, > 0.4 around x == 75
+    def getFailureRate(self, lastFailureRate, timeSinceLastRepair):
+        # return self._failureRateSigmoid(timeSinceLastRepair)
+        # return self._failureRateExp(timeSinceLastRepair)
+        return self._failureRateCategorical(lastFailureRate)
 
     @staticmethod
-    def failureRateVariance(timeSinceLastRepair):
-        return 0.01 + timeSinceLastRepair / 2500
+    def _failureRateSigmoid(timeSinceLastRepair):
+        mean = 0.5 / (1 + math.exp(-0.1 * (timeSinceLastRepair - 60)))  # sigmoid, > 0.4 around x == 75
+        var = 0.01 + timeSinceLastRepair / 2500
+        return np.random.normal(mean, var)
 
-    # @staticmethod
-    # def failureRateAdd(timeSinceLastFailure):
-    #     if timeSinceLastFailure < 50:
-    #         return random.random() / 500
-    #     return random.random() / 100
+    @staticmethod
+    def _failureRateExp(timeSinceLastRepair):
+        mean = (1.1 ** (timeSinceLastRepair - 100)) / 2  # exponential, at x == 100 => return 0.5 (which is failThreshold)
+        var = 0.01 + timeSinceLastRepair / 2500
+        return np.random.normal(mean, var)
+
+    @staticmethod
+    def _failureRateCategorical(lastFailureRate):
+        return lastFailureRate + np.random.choice([0, 0.07], p=[0.9, 0.1])
 
     def __init__(self):
         if 'CONFIGURATION' in locals():
