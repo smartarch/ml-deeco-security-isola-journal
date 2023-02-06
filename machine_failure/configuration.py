@@ -9,16 +9,16 @@ class Configuration:
     timeToFailureEstimator = None
     failureThreshold = 0.5
     timeToRepair = 30
-    machineCount = 10
+    machineCount = 3
 
     @staticmethod
-    def failureRateMean(timeSinceLastFailure):
+    def failureRateMean(timeSinceLastRepair):
         # return (1.1 ** (timeSinceLastFailure - 100)) / 2  # exponential, at x == 100 => return 0.5 (which is failThreshold)
-        return 0.5 / (1 + math.exp(-0.1 * (timeSinceLastFailure - 60)))  # sigmoid, > 0.4 around x == 75
+        return 0.5 / (1 + math.exp(-0.1 * (timeSinceLastRepair - 60)))  # sigmoid, > 0.4 around x == 75
 
     @staticmethod
-    def failureRateVariance(timeSinceLastFailure):
-        return 0.01 + timeSinceLastFailure / 2500
+    def failureRateVariance(timeSinceLastRepair):
+        return 0.01 + timeSinceLastRepair / 2500
 
     # @staticmethod
     # def failureRateAdd(timeSinceLastFailure):

@@ -11,7 +11,7 @@ import tensorflow as tf
 
 from ml_deeco.estimators import NeuralNetworkEstimator
 from ml_deeco.simulation import Experiment, Configuration
-from ml_deeco.utils import setVerboseLevel, Log, setVerbosePrintFile, closeVerbosePrintFile
+from ml_deeco.utils import setVerboseLevel, Log, setVerbosePrintFile, closeVerbosePrintFile, verbosePrint
 
 from configuration import CONFIGURATION
 from plots import plotFailureRate
@@ -30,7 +30,7 @@ class ProductionMachineExperiment(Experiment):
 
         # initialize configuration
         CONFIGURATION.timeToFailureEstimator = NeuralNetworkEstimator(
-            self, hidden_layers=[128], fit_params={"batch_size": 64},
+            self, hidden_layers=[128], fit_params={"batch_size": 64}, baseline=None,
             name="time_to_failure", outputFolder=CONFIGURATION.outputFolder / "time_to_failure"
         )
 
@@ -46,7 +46,7 @@ class ProductionMachineExperiment(Experiment):
         """Prepares the components for the simulation"""
         from components import ProductionMachine
 
-        machines = [ProductionMachine() for _ in range(CONFIGURATION.machineCount)]
+        machines = [ProductionMachine(self) for _ in range(CONFIGURATION.machineCount)]
 
         self.machineLogs = {}
         for machine in machines:
@@ -56,13 +56,27 @@ class ProductionMachineExperiment(Experiment):
 
     def stepCallback(self, components, _ensembles, step):
         for machine in components:
-            self.machineLogs[machine].register([step, machine.timeSinceLastFailure, machine.isRunning, machine.failureRate])
+            self.machineLogs[machine].register([step, machine.timeSinceLastRepair, machine.isRunning, machine.failureRate])
+
+    def computeMachinesRunning(self):
+        totalRunningTime = 0
+        for log in self.machineLogs.values():
+            for _, _, isRunning, _ in log.records:
+                if isRunning:
+                    totalRunningTime += 1
+        return totalRunningTime
 
     def simulationCallback(self, components, _ens, i, s):
         os.makedirs(CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}", exist_ok=True)
         for machine in components:
             self.machineLogs[machine].export(CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/{machine}.csv")
+            machine.maintenanceLog.export(CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/{machine}_maintenance.csv")
+            machine.repairLog.export(CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/{machine}_repair.csv")
         plotFailureRate(self.machineLogs, filename=CONFIGURATION.outputFolder / f"machines/{i+1}/{s+1}/failure_rate.png")
+        verbosePrint(f"Total running time: {self.computeMachinesRunning()}", 2)
+
+    def iterationCallback(self, i):
+        return i == self.config.iterations - 1  # do not train after last iteration
 
     def trainingCallback(self, i):
         # save the ML model
@@ -71,11 +85,11 @@ class ProductionMachineExperiment(Experiment):
 
 def run():
     parser = argparse.ArgumentParser(description='Smart factory simulation')
-    parser.add_argument('-v', '--verbose', type=int, help='the verboseness between 0 and 4.', required=False, default="2")
+    parser.add_argument('-v', '--verbose', type=int, help='the verboseness between 0 and 4.', required=False, default=3)
     parser.add_argument('--seed', type=int, help='Random seed.', required=False, default=42)
     parser.add_argument('--threads', type=int, help='Number of CPU threads TF can use.', required=False, default=4)
     parser.add_argument('-o', '--output', type=str, help='Output folder for the logs.', required=False, default='results')
-    parser.add_argument('-i', '--iterations', type=int, help="Number of iterations to run.", required=False, default=1)
+    parser.add_argument('-i', '--iterations', type=int, help="Number of iterations to run.", required=False, default=2)
     parser.add_argument('-s', '--simulations', type=int, help="Number of simulations to run in each iteration.", required=False, default=1)
     args = parser.parse_args()
 
