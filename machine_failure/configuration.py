@@ -6,12 +6,13 @@ import numpy as np
 
 class Configuration:
 
-    steps = 500
+    steps = 1000
     outputFolder = None
     timeToFailureEstimator = None
-    failureThreshold = 0.5
+    failureThreshold = 0.499
     timeToRepair = 30
-    machineCount = 10
+    machineCount = 100
+    # machineCount = 10
 
     def getFailureRate(self, lastFailureRate, timeSinceLastRepair):
         # return self._failureRateSigmoid(timeSinceLastRepair)
@@ -32,7 +33,7 @@ class Configuration:
 
     @staticmethod
     def _failureRateCategorical(lastFailureRate):
-        return lastFailureRate + np.random.choice([0, 0.07], p=[0.9, 0.1])
+        return lastFailureRate + np.random.choice([0, 0.05], p=[0.9, 0.1])
 
     def __init__(self):
         if 'CONFIGURATION' in locals():

@@ -26,7 +26,9 @@ class ProductionMachine(Component):
     def failure_rate(self):
         return self.failureRate
 
-    # TODO: use timeSinceLastRepair as input?
+    @timeToFailure.input(NumericFeature(0, 100))
+    def time_since_repair(self):
+        return self.timeSinceLastRepair
 
     @timeToFailure.inputsValid
     def is_running(self):
@@ -34,7 +36,13 @@ class ProductionMachine(Component):
 
     @timeToFailure.condition
     def failed(self):
-        return self.failureRate > CONFIGURATION.failureThreshold
+        return self.failureRate >= CONFIGURATION.failureThreshold
+
+    def timeToFailureBaseline(self):
+        """Call maintenance if timeSinceLastRepair is at least 50"""
+        if self.timeSinceLastRepair >= 70:
+            return 0  # <  CONFIGURATION.timeToRepair -> call maintenance (see `preventFailure`)
+        return 999    # >= CONFIGURATION.timeToRepair -> keep running (see `preventFailure`)
 
     def fail(self):
         self.isRunning = False
@@ -68,11 +76,9 @@ class ProductionMachine(Component):
         """Call the maintenance if we predict the machine will fail soon"""
         timeToFailure = self.timeToFailure()
         if timeToFailure is None:  # baseline without failure prevention
-            # if self.timeSinceLastRepair >= 50:
-            #     self.callMaintenance()
             return
 
-        if timeToFailure < CONFIGURATION.timeToRepair:
+        if timeToFailure <= CONFIGURATION.timeToRepair:
             # Call maintenance
             self.callMaintenance(timeToFailure)
 
@@ -85,5 +91,5 @@ class ProductionMachine(Component):
         if self.isRunning:
             self.simulateFailureRate()
             self.preventFailure()
-            if self.failureRate > CONFIGURATION.failureThreshold:
+            if self.failureRate >= CONFIGURATION.failureThreshold:
                 self.fail()

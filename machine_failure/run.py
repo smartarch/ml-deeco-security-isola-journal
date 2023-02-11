@@ -40,6 +40,8 @@ class ProductionMachineExperiment(Experiment):
 
         # import the component with estimate after the `CONFIGURATION.timeToFailureEstimator` is created
         from components import ProductionMachine
+        if config.baseline:
+            ProductionMachine.timeToFailure.withBaseline(ProductionMachine.timeToFailureBaseline)
         self.machineLogs = {}
 
     def prepareSimulation(self, _i, _s):
@@ -73,8 +75,16 @@ class ProductionMachineExperiment(Experiment):
             self.machineLogs[machine].export(CONFIGURATION.outputFolder / f"machines/{i+1}/{machine}.csv")
             machine.maintenanceLog.export(CONFIGURATION.outputFolder / f"machines/{i+1}/{machine}_maintenance.csv")
             machine.repairLog.export(CONFIGURATION.outputFolder / f"machines/{i+1}/{machine}_repair.csv")
-        plotFailureRate(self.machineLogs, maxMachines=1, filename=CONFIGURATION.outputFolder / f"machines/{i+1}/failure_rate.png",
-                        title=f"Failure rate of machines\nIteration {i+1}")
+
+        if i == 0:
+            if self.config.baseline:
+                title = "Proactive (Rigid)"
+            else:
+                title = "Reactive"
+        else:
+            title = "Proactive (Machine Learning)"
+        plotFailureRate(self.machineLogs, maxMachines=1, filename=CONFIGURATION.outputFolder / f"failure_rate_{i+1}.png",
+                        title=f"Failure rate of machines\n{title}")
         machineRunningTimes = self.computeMachinesRunning()
         verbosePrint(f"Running times: {machineRunningTimes}, total: {sum(machineRunningTimes)}", 2)
 
@@ -93,6 +103,7 @@ def run():
     parser.add_argument('--threads', type=int, help='Number of CPU threads TF can use.', required=False, default=4)
     parser.add_argument('-o', '--output', type=str, help='Output folder for the logs.', required=False, default='results')
     parser.add_argument('-i', '--iterations', type=int, help="Number of iterations to run.", required=False, default=2)
+    parser.add_argument('-b', '--baseline', action='store_true', help="Use a baseline.", required=False, default=False)
     args = parser.parse_args()
 
     # Fix random seeds

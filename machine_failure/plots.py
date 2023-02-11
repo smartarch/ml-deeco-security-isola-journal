@@ -6,7 +6,7 @@ import numpy as np
 
 def plotFailureRate(machineLogs, maxMachines=None, filename=None, show=False, figsize=None, title="Failure rate of machines"):
     if not figsize:
-        figsize = (9, 5)
+        figsize = (10, 5)
     machines = list(machineLogs.keys())
     if maxMachines is not None:
         machines = machines[:maxMachines]
