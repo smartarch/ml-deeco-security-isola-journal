@@ -1,12 +1,12 @@
 from typing import List
 
-from configuration import setStandbyArrivedAtWorkplaceTime, CONFIGURATION
+from configuration import setStandbyArrivedAtWorkplaceTime, CONFIGURATION, DayOfWeek
 from ml_deeco.estimators import NeuralNetworkEstimator, CategoricalFeature, BinaryFeature, NumericFeature
 from ml_deeco.simulation import Ensemble, someOf
 from ml_deeco.utils import verbosePrint
 
 from components import Shift, Worker, WorkerState
-from helpers import allow, now, DayOfWeek
+from helpers import allow, now
 
 
 class ShiftTeam(Ensemble):

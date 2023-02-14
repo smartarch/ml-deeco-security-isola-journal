@@ -42,6 +42,8 @@ class ProductionMachineExperiment(Experiment):
         from components import ProductionMachine
         if config.baseline:
             ProductionMachine.timeToFailure.withBaseline(ProductionMachine.timeToFailureBaseline)
+
+        # prepare the logs
         self.machineLogs = {}
 
     def prepareSimulation(self, _i, _s):
@@ -96,7 +98,7 @@ class ProductionMachineExperiment(Experiment):
         CONFIGURATION.timeToFailureEstimator.saveModel(i)
 
 
-def run():
+def main():
     parser = argparse.ArgumentParser(description='Smart factory simulation')
     parser.add_argument('-v', '--verbose', type=int, help='the verboseness between 0 and 4.', required=False, default=2)
     parser.add_argument('--seed', type=int, help='Random seed.', required=False, default=42)
@@ -122,4 +124,4 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    main()

@@ -9,8 +9,7 @@ import numpy as np
 import seaborn as sns
 from matplotlib.colors import ListedColormap
 
-from configuration import CONFIGURATION
-from helpers import DayOfWeek
+from configuration import CONFIGURATION, DayOfWeek
 from ml_deeco.estimators import CategoricalFeature
 
 font = {'size': 12}

@@ -1,15 +1,17 @@
+import enum
 import random
 from typing import Tuple, List
 import numpy as np
 import numpy.random as npr
 
-from ml_deeco.simulation import Point2D, SIMULATION_GLOBALS
+from ml_deeco.simulation import Point2D, Experiment
 
-from helpers import DayOfWeek
 from components import WorkPlace, Factory, Door, Dispenser, Worker
 
 
 class Configuration:
+
+    experiment: Experiment = None
 
     steps = 50
     shiftStart = 30
@@ -81,4 +83,14 @@ def setArrivalTime(worker: Worker, dayOfWeek):
 
 # we will not simulate the standby, just assume they will start working about an hour after they are called
 def setStandbyArrivedAtWorkplaceTime(standby: Worker):
-    standby.arrivedAtWorkplaceTime = SIMULATION_GLOBALS.currentTimeStep + int(random.gauss(standbyMean, standbyStd))
+    standby.arrivedAtWorkplaceTime = CONFIGURATION.experiment.currentTimeStep + int(random.gauss(standbyMean, standbyStd))
+
+
+class DayOfWeek(enum.IntEnum):
+    MONDAY = 0
+    TUESDAY = 1
+    WEDNESDAY = 2
+    THURSDAY = 3
+    FRIDAY = 4
+    SATURDAY = 5
+    SUNDAY = 6
