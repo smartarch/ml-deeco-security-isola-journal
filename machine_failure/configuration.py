@@ -9,7 +9,7 @@ class Configuration:
     steps = 1000
     outputFolder = None
     timeToFailureEstimator = None
-    failureThreshold = 0.499
+    failureThreshold = 0.499  # 0.5 with a margin for float rounding errors
     timeToRepair = 30
     machineCount = 100
     # machineCount = 10

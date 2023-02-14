@@ -1,6 +1,6 @@
-# Security rules for a smart factory
+# Maintenance of production machines in a factory 
 
-In this example, we use the ML-DEECo framework to implement a simulation of a smart factory with adaptive secutrity rules. 
+In this example, we use the ML-DEECo framework to implement a simulation of a scenario with failing production machines which need maintenance. 
 
 In this document, a simple guide to run the example is presented:
 
@@ -19,58 +19,43 @@ pip install --editable ../ml_deeco
 
 ## Usage
 
-The experiments presented in the paper were run for three iterations:
+To run the experiments presented in the paper, use the following two commands.
+
+The first command runs the *Reactive* scenario and uses the data collected during the simulation to train the ML model and then run the *Proactive (Machine Learning)* scenario:
 
 ```
-py run.py -o results -b 16 -v 2 -i 3 -p
+py run.py -o results/reactive
 ```
 
-* `-o results` defines the folder to save results to
-* `-b 16` sets the baseline for worker cancellation (to 16 minutes before the shift starts) 
-* `-v 2` sets a reasonable the verbosity level
-* `-i 3` sets the three iterations
-* `-p` enables displaying the plots with results
+The second command runs the *Proactive (Rigid)* scenario.
 
-Running the experiment with these parameters will perform three iterations &dnash; each simulating one week. In the first iteration, we use the rigid rule of canceling workers 16 minutes before their shift starts (baseline). Using the data collected in the first iteration, the machine-learning-based model is trained, and it is then used in the second iteration. Similarly, we use the data collected during the second iteration to update the model and then use it during the third iteration.
+```
+py run.py -i 1 -b -o results/proactive
+```
 
-The experiment produces the following charts as results. They are described in more detail in the paper.
+The semantics of the options is as follows:
 
-![Number of standbys and lateness in the smart factory simulation](results/16/shifts.png)
+* `-o results` defines the folder to save results to,
+* `-i 1` sets the number of iterations (default is `2` for the *Reactive* and *Proactive (Machine Learning)* scenarios ran together),
+* `-b` enables the *Proactive (Rigid)* baseline (without it, the reactive baseline is used).
 
-![Neural network output](results/16/nn.png)
+Other options include:
 
-## Results for 20% and 30% of late workers
+* `-v` to set the verbosity level (default is `2`),
+* `--seed` to set the random generator seed,
+* `--threads` to se the number of threads used by TensorFlow (default is `4`).
 
-The percentage of late workers can be set by the `--late` option (e.g., `--late 0.2`).
+The experiments produce the following charts as results. They are described in more detail in the paper. The running times of machines are printed to the standard output. 
 
-### 20% of late workers
+![Failure rate and running state of one production machine in the reactive scenario.](results/failure_rate_reactive.png)
+![Failure rate and running state of one production machine in a rigid proactive scenario.](results/failure_rate_proactive_rigid.png)
+![Failure rate and running state of one production machine in the ML-based proactive scenario.](results/failure_rate_proactive_ml.png)
 
-![Number of standbys and lateness in the smart factory simulation](results/0.2_16/shifts.png)
+## Simulation configuration
 
-![Neural network output](results/0.2_16/nn.png)
+Some aspects of the simulation can be configured in the [configuration.py](configuration.py) file. These include:
 
-### 30% of late workers
-
-![Number of standbys and lateness in the smart factory simulation](results/0.3_16/shifts.png)
-
-![Neural network output](results/0.3_16/nn.png)
-
-## Simulation overview
-
-### [Components](components.py)
-
-`Door`, `Dispenser` (of protective headgear), `Factory`, `WorkPlace`, `Shift`, `Worker`
-
-### [Ensembles](ensembles.py)
-
-#### Security-related
-
-* `ShiftTeam` - all working workers in one shift (those not cancelled, incl. called standbys)
-* `AccessToFactory`
-* `AccessToDispenser`
-* `AccessToWorkPlace`
-
-#### Late workers replacement
-
-* `CancelLateWorkers` &ndash; ensemble with ML estimate
-* `ReplaceLateWithStandbys` &ndash; possible use of heuristic for matching standbys to shifts
+* the number of steps of the simulation (`steps = 1000`),
+* the failure rate threshold to shut off the machine (`failureThreshold = 0.499`),
+* time to repair the machine when maintenance is called (`timeToRepair = 30`),
+* and the number of machines (`machineCount = 100`).

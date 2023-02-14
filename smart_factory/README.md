@@ -1,6 +1,6 @@
 # Security rules for a smart factory
 
-In this example, we use the ML-DEECo framework to implement a simulation of a smart factory with adaptive secutrity rules. 
+In this example, we use the ML-DEECo framework to implement a simulation of a smart factory with adaptive security rules. 
 
 In this document, a simple guide to run the example is presented:
 
