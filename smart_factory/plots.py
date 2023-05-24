@@ -24,7 +24,7 @@ def computeWeeklyAverages(data, iterations, simulations):
         week = data[weekStart:weekStart + simulations]
         result.extend([mean(week[:5])] * 5)   # work days
         result.extend([mean(week[-2:])] * 2)  # weekend
-    return result
+    return np.array(result)
 
 
 def plotStandbysAndLateness(shiftsLog, iterations, simulations, filename=None, show=False, figsize=None):
@@ -33,7 +33,7 @@ def plotStandbysAndLateness(shiftsLog, iterations, simulations, filename=None, s
     fig, ax_s = plt.subplots(figsize=figsize)
 
     xLabels = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"][:simulations] * iterations
-    x = list(range(1, iterations * simulations + 1))
+    x = np.arange(1, iterations * simulations + 1)
 
     standbys = shiftsLog.getColumnAvg("standbys")
     standbysAvg = computeWeeklyAverages(standbys, iterations, simulations)
@@ -44,9 +44,15 @@ def plotStandbysAndLateness(shiftsLog, iterations, simulations, filename=None, s
 
     legend = []
     legend.append(ax_s.plot(x, standbys, c='tab:blue', marker="o", linestyle="None", label="Standbys"))
-    ax_s.plot(x, standbysAvg, c='tab:blue', linestyle="dashed")
     legend.append(ax_l.plot(x, lateness, c='tab:orange', marker="o", linestyle="None", label="Lateness"))
-    ax_l.plot(x, latenessAvg, c='tab:orange', linestyle="dashed")
+    # averages
+    for i in range(iterations):
+        weekdays = [d + 7 * i for d in range(5)]
+        weekends = [d + 5 + 7 * i for d in range(2)]
+        ax_s.plot(x[weekdays], standbysAvg[weekdays], c='tab:blue', linestyle="dashed")
+        ax_s.plot(x[weekends], standbysAvg[weekends], c='tab:blue', linestyle="dashed")
+        ax_l.plot(x[weekdays], latenessAvg[weekdays], c='tab:orange', linestyle="dashed")
+        ax_l.plot(x[weekends], latenessAvg[weekends], c='tab:orange', linestyle="dashed")
 
     if iterations > 1:
         yLines = np.linspace(simulations + 0.5, ((iterations - 1) * simulations) + 0.5, iterations - 1)
@@ -135,7 +141,7 @@ def plotLateWorkersNN(estimator, filename=None, subtitle="", show=False, figsize
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Smart factory simulation NN plot.')
-    parser.add_argument('-o', '--output_folder', type=str, help='Output folder of the simulation.', required=True, default='results')
+    parser.add_argument('-o', '--output_folder', type=str, help='Output folder of the simulation.', default='results')
     args = parser.parse_args()
 
     folder = Path(args.output_folder)
@@ -156,7 +162,9 @@ if __name__ == '__main__':
                 return [float(d[standbysIndex]) for d in data]
 
     plotStandbysAndLateness(DummyShiftsLog(), len(data) // 7, 7, show=True, figsize=(9, 5), filename=folder / "shifts.pdf")
-    plotStandbysAndLateness(DummyShiftsLog(), len(data) // 7, 7, show=True, figsize=(9, 5), filename=folder / "shifts.png")
+    plotStandbysAndLateness(DummyShiftsLog(), len(data) // 7, 7, show=False, figsize=(9, 5), filename=folder / "shifts.png")
+
+    exit(0)
 
     # NN
     import tensorflow as tf

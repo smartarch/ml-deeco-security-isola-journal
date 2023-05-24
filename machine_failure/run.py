@@ -86,7 +86,7 @@ class ProductionMachineExperiment(Experiment):
         else:
             title = "Proactive (Machine Learning)"
         plotFailureRate(self.machineLogs, maxMachines=1, filename=CONFIGURATION.outputFolder / f"failure_rate_{i+1}.png",
-                        title=f"Failure rate of machines\n{title}")
+                        title=f"Failure rate of machines – {title}")
         machineRunningTimes = self.computeMachinesRunning()
         verbosePrint(f"Running times: {machineRunningTimes}, total: {sum(machineRunningTimes)}", 2)
 
